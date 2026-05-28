@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sailing Acer</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --green:      #3d5a3e;
+    --green-mid:  #567a58;
+    --green-light:#c8d8c9;
+    --green-pale: #eef3ee;
+    --grey-dark:  #3a3a38;
+    --grey-mid:   #6b6b68;
+    --grey-light: #d4d4cf;
+    --grey-pale:  #f4f3f0;
+    --cream:      #faf9f6;
+    --white:      #ffffff;
+    --ink:        #2a2a28;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Jost',sans-serif; background:var(--cream); color:var(--ink); }
+
+  nav {
+    position:sticky; top:0; z-index:1000;
+    background:var(--cream); border-bottom:1px solid var(--grey-light);
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 2.5rem; height:56px;
+  }
+  .nav-brand {
+    font-family:'Cormorant Garamond',serif;
+    font-size:1.25rem; font-weight:500; font-style:italic;
+    color:var(--green); text-decoration:none;
+  }
+  .nav-links { display:flex; gap:0.1rem; }
+  .nav-links button {
+    background:none; border:none;
+    font-family:'Jost',sans-serif; font-size:0.78rem; font-weight:400;
+    letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--grey-mid); padding:0.4rem 0.9rem;
+    border-radius:3px; cursor:pointer; transition:color 0.2s, background 0.2s;
+  }
+  .nav-links button:hover { color:var(--ink); background:var(--grey-pale); }
+  .nav-links button.active { color:var(--green); font-weight:500; }
+
+  .hero {
+    padding:4rem 2rem 3.5rem; text-align:center;
+    border-bottom:1px solid var(--grey-light);
+  }
+  .hero-eyebrow {
+    font-size:0.72rem; font-weight:500; letter-spacing:0.18em;
+    text-transform:uppercase; color:var(--green-mid); margin-bottom:1rem;
+  }
+  .hero h1 {
+    font-family:'Cormorant Garamond',serif;
+    font-size:clamp(3rem,7vw,5.5rem); font-weight:400; font-style:italic;
+    color:var(--green); line-height:1.05; margin-bottom:0.75rem;
+  }
+  .hero-sub {
+    font-size:0.95rem; font-weight:300; color:var(--grey-mid); margin-bottom:0.5rem;
+  }
+  .hero-location {
+    font-size:0.82rem; color:var(--grey-mid); margin-bottom:2.5rem; min-height:1.4em;
+  }
+  .loc-label {
+    font-size:0.68rem; letter-spacing:0.12em; text-transform:uppercase;
+    color:var(--grey-light); margin-right:0.4rem;
+  }
+  .loc-place { color:var(--green-mid); }
+  .hero-stats {
+    display:inline-flex; border:1px solid var(--grey-light);
+    border-radius:4px; overflow:hidden; background:var(--white);
+  }
+  .hero-stat {
+    padding:0.9rem 2rem; text-align:center;
+    border-right:1px solid var(--grey-light);
+  }
+  .hero-stat:last-child { border-right:none; }
+  .hs-num {
+    font-family:'Cormorant Garamond',serif;
+    font-size:1.8rem; font-weight:500; color:var(--green); line-height:1; display:block;
+  }
+  .hs-label {
+    font-size:0.68rem; font-weight:500; letter-spacing:0.12em;
+    text-transform:uppercase; color:var(--grey-mid); margin-top:0.25rem; display:block;
+  }
+
+  .page { display:none; }
+  .page.active { display:block; }
+  .section { max-width:900px; margin:0 auto; padding:3rem 1.5rem; }
+
+  .sh {
+    font-family:'Cormorant Garamond',serif;
+    font-size:1.6rem; font-weight:500; font-style:italic;
+    color:var(--green); margin-bottom:0.3rem;
+  }
+  .sh-sub { font-size:0.82rem; color:var(--grey-mid); margin-bottom:2rem; }
+
+  /* MAP */
+  .map-wrap {
+    border:1px solid var(--grey-light); border-radius:6px;
+    overflow:hidden; background:var(--white); margin-bottom:0.75rem;
+  }
+  .map-bar {
+    padding:0.75rem 1.25rem; display:flex; align-items:center; gap:0.65rem;
+    border-bottom:1px solid var(--grey-light); background:var(--grey-pale); flex-wrap:wrap;
+  }
+  .map-bar-label { font-size:0.82rem; font-weight:500; color:var(--grey-dark); }
+  .map-bar-loc { font-size:0.78rem; color:var(--green-mid); }
+  .map-bar-time { font-size:0.72rem; color:var(--grey-light); }
+  .map-bar a {
+    margin-left:auto; font-size:0.78rem; color:var(--green-mid); text-decoration:none;
+  }
+  .map-bar a:hover { text-decoration:underline; }
+  #map { width:100%; height:460px; }
+  .map-note { font-size:0.75rem; color:var(--grey-mid); padding:0.5rem 0.25rem; }
+
+  #map-iframe {
+    width:100%; height:460px; border:none; display:block;
+  }
+
+  .stats-row {
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:0.85rem; margin-bottom:2.5rem;
+  }
+  .stat-card {
+    background:var(--white); border:1px solid var(--grey-light);
+    border-radius:6px; padding:1.25rem 1.5rem;
+  }
+  .sc-num {
+    font-family:'Cormorant Garamond',serif;
+    font-size:2rem; font-weight:500; color:var(--green); line-height:1;
+  }
+  .sc-label {
+    font-size:0.72rem; font-weight:500; letter-spacing:0.1em;
+    text-transform:uppercase; color:var(--grey-mid); margin-top:0.35rem;
+  }
+  .sc-note { font-size:0.72rem; color:var(--grey-light); margin-top:0.2rem; }
+
+  .countries-wrap { margin-top:2rem; }
+  .countries-chips { display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:0.85rem; }
+  .chip {
+    background:var(--white); border:1px solid var(--grey-light);
+    border-radius:2px; padding:0.3rem 0.85rem;
+    font-size:0.83rem; display:flex; align-items:center; gap:0.4rem;
+  }
+  .chip-remove {
+    color:var(--grey-light); cursor:pointer; background:none; border:none;
+    font-size:0.9rem; line-height:1; padding:0; transition:color 0.15s;
+  }
+  .chip-remove:hover { color:var(--grey-mid); }
+  .chip-add {
+    background:none; border:1px dashed var(--grey-light);
+    border-radius:2px; padding:0.3rem 0.85rem;
+    font-size:0.83rem; color:var(--grey-mid); cursor:pointer;
+    font-family:'Jost',sans-serif; transition:border-color 0.2s, color 0.2s;
+  }
+  .chip-add:hover { border-color:var(--green-mid); color:var(--green); }
+
+  .posts-list {
+    display:flex; flex-direction:column; gap:1px;
+    background:var(--grey-light); border:1px solid var(--grey-light);
+    border-radius:6px; overflow:hidden;
+  }
+  .post-item {
+    background:var(--white); padding:1.4rem 1.75rem;
+    text-decoration:none; color:inherit;
+    display:flex; align-items:center; gap:1.5rem; transition:background 0.15s;
+  }
+  .post-item:hover { background:var(--grey-pale); }
+  .post-datecol { min-width:38px; text-align:center; flex-shrink:0; }
+  .pd-day {
+    font-family:'Cormorant Garamond',serif;
+    font-size:1.4rem; font-weight:500; color:var(--green); line-height:1; display:block;
+  }
+  .pd-mon {
+    font-size:0.62rem; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--grey-mid); display:block;
+  }
+  .post-body { flex:1; }
+  .post-body h3 {
+    font-family:'Cormorant Garamond',serif;
+    font-size:1.05rem; font-weight:500; color:var(--ink);
+    margin-bottom:0.2rem; line-height:1.35;
+  }
+  .post-body p { font-size:0.82rem; color:var(--grey-mid); line-height:1.5; }
+  .post-arrow { color:var(--grey-light); font-size:1rem; flex-shrink:0; }
+  .posts-loading {
+    padding:2.5rem; text-align:center; color:var(--grey-mid);
+    font-style:italic; font-size:0.9rem;
+  }
+  .posts-footer { margin-top:1.5rem; text-align:center; font-size:0.82rem; }
+  .posts-footer a { color:var(--green-mid); text-decoration:none; }
+  .posts-footer a:hover { text-decoration:underline; }
+
+  .photos-note {
+    background:var(--white); border:1px solid var(--grey-light);
+    border-radius:6px; padding:2rem; margin-bottom:2rem; text-align:center;
+  }
+  .photos-note h3 {
+    font-family:'Cormorant Garamond',serif;
+    font-size:1.3rem; font-style:italic; color:var(--green); margin-bottom:0.6rem;
+  }
+  .photos-note p {
+    font-size:0.86rem; color:var(--grey-mid); line-height:1.7;
+    max-width:460px; margin:0 auto 1.25rem;
+  }
+  .hosting-opts { display:flex; gap:0.75rem; justify-content:center; flex-wrap:wrap; }
+  .hosting-opt {
+    border:1px solid var(--grey-light); border-radius:4px;
+    padding:0.75rem 1.25rem; cursor:pointer; background:none;
+    font-family:'Jost',sans-serif; text-align:left; transition:border-color 0.2s;
+  }
+  .hosting-opt:hover { border-color:var(--green-mid); }
+  .hosting-opt strong { display:block; font-size:0.85rem; font-weight:500; color:var(--ink); }
+  .hosting-opt span { font-size:0.75rem; color:var(--grey-mid); }
+  .gallery { columns:3; gap:0.6rem; }
+  @media(max-width:600px) { .gallery { columns:2; } }
+  .gallery-item {
+    break-inside:avoid; margin-bottom:0.6rem; border-radius:4px;
+    overflow:hidden; border:1px solid var(--grey-light);
+  }
+  .gallery-placeholder {
+    width:100%; display:flex; align-items:center; justify-content:center;
+    background:var(--green-pale); color:var(--green-mid); font-size:1.6rem;
+  }
+  .ig-strip {
+    margin-top:2rem; padding:1.25rem 1.75rem;
+    background:var(--white); border:1px solid var(--grey-light);
+    border-radius:6px; display:flex; align-items:center;
+    justify-content:space-between; flex-wrap:wrap; gap:1rem;
+  }
+  .ig-strip p { font-size:0.85rem; color:var(--grey-mid); }
+  .ig-strip strong { display:block; font-size:0.95rem; color:var(--ink); margin-bottom:0.15rem; }
+  .btn-green {
+    background:var(--green); color:var(--white); border:none; border-radius:3px;
+    padding:0.55rem 1.25rem; font-family:'Jost',sans-serif; font-size:0.82rem;
+    font-weight:500; letter-spacing:0.06em; cursor:pointer; text-decoration:none;
+    display:inline-block; transition:background 0.2s;
+  }
+  .btn-green:hover { background:var(--green-mid); }
+
+  .overlay {
+    display:none; position:fixed; inset:0;
+    background:rgba(0,0,0,0.35); z-index:2000;
+    align-items:center; justify-content:center;
+  }
+  .overlay.open { display:flex; }
+  .modal {
+    background:var(--white); border-radius:8px; padding:2rem;
+    width:340px; max-width:90vw; box-shadow:0 8px 40px rgba(0,0,0,0.15);
+  }
+  .modal h3 {
+    font-family:'Cormorant Garamond',serif; font-size:1.3rem;
+    font-style:italic; color:var(--green); margin-bottom:1.25rem;
+  }
+  .modal label {
+    display:block; font-size:0.78rem; letter-spacing:0.08em;
+    text-transform:uppercase; color:var(--grey-mid); margin-bottom:0.4rem;
+  }
+  .modal input {
+    width:100%; padding:0.6rem 0.85rem; margin-bottom:1rem;
+    border:1px solid var(--grey-light); border-radius:4px;
+    font-family:'Jost',sans-serif; font-size:0.95rem;
+    color:var(--ink); background:var(--cream);
+  }
+  .modal input:focus { outline:none; border-color:var(--green-mid); }
+  .modal-btns { display:flex; gap:0.75rem; justify-content:flex-end; }
+  .btn-ghost {
+    background:none; border:1px solid var(--grey-light); border-radius:3px;
+    padding:0.5rem 1rem; font-family:'Jost',sans-serif;
+    font-size:0.85rem; color:var(--grey-mid); cursor:pointer;
+  }
+
+  footer {
+    border-top:1px solid var(--grey-light); padding:2rem;
+    text-align:center; font-size:0.78rem; color:var(--grey-mid); margin-top:3rem;
+  }
+  footer a { color:var(--green-mid); text-decoration:none; margin:0 0.5rem; }
+  footer a:hover { text-decoration:underline; }
+
+  @media(max-width:600px){
+    nav { padding:0 1rem; }
+    .nav-links button { padding:0.35rem 0.55rem; font-size:0.7rem; }
+    .hero { padding:2.5rem 1rem; }
+    .hero-stats { flex-direction:column; display:flex; width:100%; max-width:280px; margin:0 auto; }
+    .hero-stat { border-right:none; border-bottom:1px solid var(--grey-light); }
+    .hero-stat:last-child { border-bottom:none; }
+    .section { padding:2rem 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="#">Sailing Acer</a>
+  <div class="nav-links">
+    <button class="active" onclick="showPage('tracker')">Tracker</button>
+    <button onclick="showPage('posts')">Posts</button>
+    <button onclick="showPage('photos')">Photos</button>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="hero-eyebrow">Ev &amp; Mags · SV Acer</div>
+  <h1>Sailing Acer</h1>
+  <p class="hero-sub">It seemed like a good idea at the time.</p>
+  <div class="hero-location">
+    <span class="loc-label">Last known position</span>
+    <span class="loc-place" id="loc-text">loading…</span>
+  </div>
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <span class="hs-num" id="h-countries">—</span>
+      <span class="hs-label">Countries</span>
+    </div>
+    <div class="hero-stat">
+      <span class="hs-num" id="h-posts">—</span>
+      <span class="hs-label">Dispatches</span>
+    </div>
+  </div>
+</div>
+
+<!-- TRACKER -->
+<div id="page-tracker" class="page active">
+  <div class="section">
+    <p class="sh">Where we are</p>
+    <p class="sh-sub">Last recorded position from Garmin inReach · only on when underway</p>
+    <div class="map-wrap">
+      <div class="map-bar">
+        <span class="map-bar-label">SV Acer</span>
+        <span class="map-bar-loc" id="bar-loc"></span>
+        <span class="map-bar-time" id="bar-time"></span>
+        <a href="https://share.garmin.com/svacer" target="_blank">Open on Garmin ↗</a>
+      </div>
+      <iframe id="map-iframe" src="" title="SV Acer position map"></iframe>
+    </div>
+    <p class="map-note" id="map-note">Loading last known position…</p>
+
+    <div class="stats-row" style="margin-top:2rem">
+      <div class="stat-card">
+        <div class="sc-num" id="sc-countries">—</div>
+        <div class="sc-label">Countries visited</div>
+        <div class="sc-note">updated by Maggie</div>
+      </div>
+      <div class="stat-card">
+        <div class="sc-num" id="sc-posts">—</div>
+        <div class="sc-label">Dispatches</div>
+        <div class="sc-note">from Substack</div>
+      </div>
+    </div>
+
+    <div class="countries-wrap">
+      <p class="sh" style="font-size:1.25rem">Countries visited</p>
+      <p class="sh-sub">Every flag along the way</p>
+      <div class="countries-chips" id="countries-chips"></div>
+    </div>
+  </div>
+</div>
+
+<!-- POSTS -->
+<div id="page-posts" class="page">
+  <div class="section">
+    <p class="sh">Dispatches from sea</p>
+    <p class="sh-sub">All posts from <a href="https://maggiemcnabb.substack.com" target="_blank" style="color:var(--green-mid)">maggiemcnabb.substack.com</a></p>
+    <div id="posts-container"><div class="posts-loading">Loading…</div></div>
+    <div class="posts-footer">
+      <a href="https://maggiemcnabb.substack.com" target="_blank">Subscribe on Substack →</a>
+    </div>
+  </div>
+</div>
+
+<!-- PHOTOS -->
+<div id="page-photos" class="page">
+  <div class="section">
+    <p class="sh">The view from Acer</p>
+    <p class="sh-sub">Underwater, drone, and deck shots</p>
+    <div class="photos-note">
+      <h3>Adding your photos</h3>
+      <p>Upload photos to any free host, then drop the image URLs into the HTML where marked. One edit, no account needed.</p>
+      <div class="hosting-opts">
+        <button class="hosting-opt"><strong>Google Photos</strong><span>Easiest if you already use it</span></button>
+        <button class="hosting-opt"><strong>Cloudinary</strong><span>25 GB free, built for galleries</span></button>
+        <button class="hosting-opt"><strong>GitHub repo</strong><span>Already free with the site</span></button>
+      </div>
+    </div>
+    <!-- Replace placeholders with real images:
+         <div class="gallery-item"><img src="YOUR_URL" alt="description" style="width:100%;display:block;"></div> -->
+    <div class="gallery">
+      <div class="gallery-item"><div class="gallery-placeholder" style="aspect-ratio:4/3">🐠</div></div>
+      <div class="gallery-item"><div class="gallery-placeholder" style="aspect-ratio:3/2">🌊</div></div>
+      <div class="gallery-item"><div class="gallery-placeholder" style="aspect-ratio:3/4">🚁</div></div>
+      <div class="gallery-item"><div class="gallery-placeholder" style="aspect-ratio:4/3">⛵</div></div>
+      <div class="gallery-item"><div class="gallery-placeholder" style="aspect-ratio:1/1">🌅</div></div>
+      <div class="gallery-item"><div class="gallery-placeholder" style="aspect-ratio:4/3">🐢</div></div>
+    </div>
+    <div class="ig-strip">
+      <div>
+        <strong>More on Instagram</strong>
+        <p>Follow <a href="https://instagram.com/sv_acer" target="_blank" style="color:var(--green-mid)">@sv_acer</a> for the daily stuff</p>
+      </div>
+      <a class="btn-green" href="https://instagram.com/sv_acer" target="_blank">@sv_acer</a>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <em style="font-family:'Cormorant Garamond',serif;font-size:1rem;color:var(--green)">Sailing Acer</em> — Ev &amp; Mags<br>
+  <a href="https://maggiemcnabb.substack.com" target="_blank">Substack</a>
+  <a href="https://share.garmin.com/svacer" target="_blank">Tracker</a>
+  <a href="https://instagram.com/sv_acer" target="_blank">Instagram</a>
+</footer>
+
+<div class="overlay" id="country-overlay" onclick="if(event.target===this)closeCountry()">
+  <div class="modal">
+    <h3>Add a country</h3>
+    <label>Country name</label>
+    <input id="country-name" type="text" placeholder="e.g. Portugal" onkeydown="if(event.key==='Enter')saveCountry()">
+    <label>Flag emoji (optional)</label>
+    <input id="country-flag" type="text" placeholder="e.g. 🇵🇹" maxlength="4">
+    <div class="modal-btns">
+      <button class="btn-ghost" onclick="closeCountry()">Cancel</button>
+      <button class="btn-green" onclick="saveCountry()">Add</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────
+const WORKER    = 'https://garmin-tracker.mm-scheunert.workers.dev';
+const GARMIN_KML = 'https://share.garmin.com/Feed/Share/svAcer';
+
+// ── STATE ─────────────────────────────────────────────────
+const SK = 'sailing_acer_v5';
+let S = { countries: [], postCount: 0 };
+try { const r = localStorage.getItem(SK); if(r) S = JSON.parse(r); } catch(e){}
+function save(){ try{ localStorage.setItem(SK, JSON.stringify(S)); } catch(e){} }
+
+// ── MAP INIT ──────────────────────────────────────────────
+function setMapPosition(lat, lon) {
+  // OpenStreetMap embed with marker — works everywhere, no JS library needed
+  const zoom = 8;
+  const url = `https://www.openstreetmap.org/export/embed.html?bbox=${lon-2},${lat-1.5},${lon+2},${lat+1.5}&layer=mapnik&marker=${lat},${lon}`;
+  document.getElementById('map-iframe').src = url;
+}
+
+// ── LOAD GARMIN POSITION ──────────────────────────────────
+async function loadGarminPosition() {
+  const note = document.getElementById('map-note');
+  try {
+    const proxyUrl = WORKER + '?url=' + encodeURIComponent(GARMIN_KML);
+    const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(12000) });
+    if(!res.ok) throw new Error('proxy ' + res.status);
+    const kml = await res.text();
+    if(!kml || kml.length < 50) throw new Error('empty');
+
+    // Parse lat/lon and timestamp from KML
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(kml, 'text/xml');
+
+    // Get coordinates from Point element
+    const coordEl = doc.querySelector('Point coordinates');
+    if(!coordEl) throw new Error('no coordinates');
+    const parts = coordEl.textContent.trim().split(',');
+    const lon = parseFloat(parts[0]);
+    const lat = parseFloat(parts[1]);
+    if(isNaN(lat) || isNaN(lon)) throw new Error('bad coords');
+
+    // Get timestamp
+    const whenEl = doc.querySelector('TimeStamp when');
+    const ts = whenEl ? new Date(whenEl.textContent.trim()) : null;
+
+    // Place marker on map
+    setMapPosition(lat, lon);
+
+    // Reverse geocode
+    await reverseGeocode(lat, lon, ts);
+
+    const timeStr = ts ? ' · ' + timeAgo(ts) : '';
+    note.textContent = 'Position loaded' + timeStr;
+
+  } catch(e) {
+    console.warn('Garmin load failed:', e.message);
+    // Show fallback position (last known from the KML file we have)
+    const fallbackLat = -15.958983;
+    const fallbackLon = -145.86829;
+    const fallbackTs  = new Date('2026-05-28T02:29:15Z');
+    setMapPosition(fallbackLat, fallbackLon);
+    await reverseGeocode(fallbackLat, fallbackLon, fallbackTs);
+    note.innerHTML = 'Showing last known position · <a href="https://share.garmin.com/svacer" target="_blank" style="color:var(--green-mid)">View live on Garmin ↗</a>';
+  }
+  renderCounts();
+}
+
+// ── REVERSE GEOCODE ───────────────────────────────────────
+async function reverseGeocode(lat, lon, ts) {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
+      { headers: { 'Accept-Language': 'en' } }
+    );
+    const data = await res.json();
+    const addr = data.address || {};
+    const city = addr.city || addr.town || addr.village || addr.hamlet || addr.island || addr.county || '';
+    const country = addr.country || '';
+    let place = city && country ? `${city}, ${country}` : (country || `${Math.abs(lat).toFixed(2)}°${lat>=0?'N':'S'}`);
+    if(data.display_name?.toLowerCase().includes('ocean') || data.display_name?.toLowerCase().includes(' sea ')) {
+      place = data.display_name.split(',')[0];
+    }
+    document.getElementById('loc-text').textContent = place;
+    document.getElementById('bar-loc').textContent = place;
+    if(ts && !isNaN(ts)) {
+      document.getElementById('bar-time').textContent = '· ' + timeAgo(ts);
+    }
+  } catch(e) {
+    const s = `${Math.abs(lat).toFixed(2)}°${lat>=0?'N':'S'}, ${Math.abs(lon).toFixed(2)}°${lon>=0?'E':'W'}`;
+    document.getElementById('loc-text').textContent = s;
+    document.getElementById('bar-loc').textContent = s;
+  }
+}
+
+function timeAgo(date) {
+  const diff = (Date.now() - new Date(date)) / 1000;
+  if(diff < 60) return 'just now';
+  if(diff < 3600) return Math.round(diff/60) + 'm ago';
+  if(diff < 86400) return Math.round(diff/3600) + 'h ago';
+  const days = Math.round(diff/86400);
+  if(days < 30) return days + 'd ago';
+  return Math.round(days/30) + ' month' + (Math.round(days/30)>1?'s':'') + ' ago';
+}
+
+// ── NAV ───────────────────────────────────────────────────
+let postsLoaded = false;
+function showPage(p) {
+  document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.nav-links button').forEach(x => x.classList.remove('active'));
+  document.getElementById('page-' + p).classList.add('active');
+  ['tracker','posts','photos'].forEach((n,i) => {
+    if(n===p) document.querySelectorAll('.nav-links button')[i].classList.add('active');
+  });
+  if(p === 'posts' && !postsLoaded) loadPosts();
+  if(p === 'tracker') {} // map is an iframe, no refresh needed
+}
+
+// ── COUNTRIES ─────────────────────────────────────────────
+function renderCountries() {
+  const wrap = document.getElementById('countries-chips');
+  wrap.innerHTML = '';
+  S.countries.forEach((c, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'chip';
+    chip.innerHTML = `${c.flag||''} ${c.name} <button class="chip-remove" onclick="removeCountry(${i})">×</button>`;
+    wrap.appendChild(chip);
+  });
+  const btn = document.createElement('button');
+  btn.className = 'chip-add'; btn.textContent = '+ Add';
+  btn.onclick = openCountryModal;
+  wrap.appendChild(btn);
+  const n = S.countries.length;
+  document.getElementById('sc-countries').textContent = n || '—';
+  document.getElementById('h-countries').textContent = n || '—';
+}
+function openCountryModal() {
+  document.getElementById('country-name').value = '';
+  document.getElementById('country-flag').value = '';
+  document.getElementById('country-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('country-name').focus(), 80);
+}
+function closeCountry() { document.getElementById('country-overlay').classList.remove('open'); }
+function saveCountry() {
+  const name = document.getElementById('country-name').value.trim();
+  if(!name) return;
+  S.countries.push({ name, flag: document.getElementById('country-flag').value.trim() });
+  save(); renderCountries(); closeCountry();
+}
+function removeCountry(i) { S.countries.splice(i,1); save(); renderCountries(); }
+
+// ── POSTS ─────────────────────────────────────────────────
+async function loadPosts() {
+  postsLoaded = true;
+  const container = document.getElementById('posts-container');
+  const url = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://maggiemcnabb.substack.com/feed') + '&count=50';
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    if(data.status !== 'ok' || !data.items?.length) throw new Error();
+    const mons = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    S.postCount = data.items.length; save(); renderCounts();
+    container.innerHTML = '<div class="posts-list">' + data.items.map(item => {
+      const d = new Date(item.pubDate);
+      const desc = (item.description||'').replace(/<[^>]+>/g,'').slice(0,130) + '…';
+      return `<a class="post-item" href="${item.link}" target="_blank">
+        <div class="post-datecol"><span class="pd-day">${d.getDate()}</span><span class="pd-mon">${mons[d.getMonth()]}</span></div>
+        <div class="post-body"><h3>${item.title}</h3><p>${desc}</p></div>
+        <div class="post-arrow">→</div>
+      </a>`;
+    }).join('') + '</div>';
+  } catch(e) {
+    container.innerHTML = '<div class="posts-loading">Could not load posts. <a href="https://maggiemcnabb.substack.com" target="_blank" style="color:var(--green-mid)">Visit Substack →</a></div>';
+  }
+}
+
+function renderCounts() {
+  const pc = S.postCount || '—';
+  document.getElementById('sc-posts').textContent = pc;
+  document.getElementById('h-posts').textContent = pc;
+}
+
+// ── INIT ──────────────────────────────────────────────────
+renderCountries();
+renderCounts();
+loadGarminPosition();
+</script>
+</body>
+</html>
