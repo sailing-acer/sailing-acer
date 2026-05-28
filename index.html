@@ -4,14 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sailing Acer</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
 
 <style>
   :root {
-    --green:      #3d5a3e;
-    --green-mid:  #567a58;
-    --green-light:#c8d8c9;
-    --green-pale: #eef3ee;
+    --navy:       #1a3a5c;
+    --navy-mid:   #2a5a8a;
+    --navy-light: #c0d4e8;
+    --navy-pale:  #eaf1f8;
     --grey-dark:  #3a3a38;
     --grey-mid:   #6b6b68;
     --grey-light: #d4d4cf;
@@ -19,81 +19,91 @@
     --cream:      #faf9f6;
     --white:      #ffffff;
     --ink:        #2a2a28;
+    /* keep green aliases pointing to navy for any remaining references */
+    --green:      #1a3a5c;
+    --green-mid:  #2a5a8a;
+    --green-light:#c0d4e8;
+    --green-pale: #eaf1f8;
   }
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family:'Jost',sans-serif; background:var(--cream); color:var(--ink); }
 
   nav {
     position:sticky; top:0; z-index:1000;
-    background:var(--cream); border-bottom:1px solid var(--grey-light);
+    background:var(--navy); border-bottom:none;
     display:flex; align-items:center; justify-content:space-between;
     padding:0 2.5rem; height:56px;
   }
   .nav-brand {
-    font-family:'Cormorant Garamond',serif;
-    font-size:1.25rem; font-weight:500; font-style:italic;
-    color:var(--green); text-decoration:none;
+    font-family:'Montserrat',sans-serif;
+    font-size:1rem; font-weight:900; letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:white; text-decoration:none;
   }
   .nav-links { display:flex; gap:0.1rem; }
   .nav-links button {
     background:none; border:none;
-    font-family:'Jost',sans-serif; font-size:0.78rem; font-weight:400;
+    font-family:'Jost',sans-serif; font-size:0.75rem; font-weight:400;
     letter-spacing:0.1em; text-transform:uppercase;
-    color:var(--grey-mid); padding:0.4rem 0.9rem;
+    color:rgba(255,255,255,0.55); padding:0.4rem 0.9rem;
     border-radius:3px; cursor:pointer; transition:color 0.2s, background 0.2s;
   }
-  .nav-links button:hover { color:var(--ink); background:var(--grey-pale); }
-  .nav-links button.active { color:var(--green); font-weight:500; }
+  .nav-links button:hover { color:white; background:rgba(255,255,255,0.1); }
+  .nav-links button.active { color:white; font-weight:500; }
 
   .hero {
-    padding:4rem 2rem 3.5rem; text-align:center;
-    border-bottom:1px solid var(--grey-light);
+    min-height: 260px;
     background-image: url('Acer_Ferox_Fakarava.JPEG');
     background-size: cover;
     background-position: center;
     position: relative;
+    display: flex; align-items: center;
+    padding: 3rem 3rem;
+    border-bottom: none;
   }
   .hero::before {
     content:''; position:absolute; inset:0;
-    background: rgba(250,249,246,0.82);
+    background: linear-gradient(to right, rgba(0,0,0,0.72) 40%, rgba(0,0,0,0.1) 100%);
   }
   .hero > * { position:relative; z-index:1; }
+  .hero-inner { display: flex; flex-direction: column; align-items: flex-start; }
   .hero-eyebrow {
-    font-size:0.72rem; font-weight:500; letter-spacing:0.18em;
-    text-transform:uppercase; color:var(--green-mid); margin-bottom:1rem;
+    font-family:'Jost',sans-serif; font-size:0.72rem; font-weight:400;
+    letter-spacing:0.18em; text-transform:uppercase;
+    color:rgba(255,255,255,0.65); margin-bottom:0.5rem;
   }
   .hero h1 {
-    font-family:'Cormorant Garamond',serif;
-    font-size:clamp(3rem,7vw,5.5rem); font-weight:400; font-style:italic;
-    color:var(--green); line-height:1.05; margin-bottom:0.75rem;
+    font-family:'Montserrat',sans-serif;
+    font-size:clamp(2.5rem,6vw,4.5rem);
+    font-weight:900; letter-spacing:0.04em;
+    color:white; line-height:1; margin-bottom:0.6rem;
+    text-align:left;
   }
   .hero-sub {
-    font-size:0.95rem; font-weight:300; color:var(--grey-mid); margin-bottom:0.5rem;
+    font-size:0.9rem; font-weight:300; font-style:italic;
+    color:rgba(255,255,255,0.7); margin-bottom:0.4rem;
+    font-family:'Jost',sans-serif;
   }
   .hero-location {
-    font-size:0.82rem; color:var(--grey-mid); margin-bottom:2.5rem; min-height:1.4em;
+    font-size:0.78rem; color:rgba(255,255,255,0.6);
+    margin-bottom:1.75rem;
   }
   .loc-label {
-    font-size:0.68rem; letter-spacing:0.12em; text-transform:uppercase;
-    color:var(--grey-light); margin-right:0.4rem;
+    font-size:0.65rem; letter-spacing:0.12em; text-transform:uppercase;
+    color:rgba(255,255,255,0.4); margin-right:0.4rem;
   }
-  .loc-place { color:var(--green-mid); }
-  .hero-stats {
-    display:inline-flex; border:1px solid var(--grey-light);
-    border-radius:4px; overflow:hidden; background:var(--white);
-  }
-  .hero-stat {
-    padding:0.9rem 2rem; text-align:center;
-    border-right:1px solid var(--grey-light);
-  }
-  .hero-stat:last-child { border-right:none; }
+  .loc-place { color:rgba(255,255,255,0.85); }
+  .hero-stats { display:flex; gap:2.5rem; }
+  .hero-stat { text-align:left; }
   .hs-num {
-    font-family:'Cormorant Garamond',serif;
-    font-size:1.8rem; font-weight:500; color:var(--green); line-height:1; display:block;
+    font-family:'Montserrat',sans-serif;
+    font-size:1.8rem; font-weight:700;
+    color:white; line-height:1; display:block;
   }
   .hs-label {
-    font-size:0.68rem; font-weight:500; letter-spacing:0.12em;
-    text-transform:uppercase; color:var(--grey-mid); margin-top:0.25rem; display:block;
+    font-size:0.65rem; font-weight:500; letter-spacing:0.12em;
+    text-transform:uppercase; color:rgba(255,255,255,0.5);
+    margin-top:0.2rem; display:block;
   }
 
   .page { display:none; }
@@ -101,9 +111,10 @@
   .section { max-width:900px; margin:0 auto; padding:3rem 1.5rem; }
 
   .sh {
-    font-family:'Cormorant Garamond',serif;
-    font-size:1.6rem; font-weight:500; font-style:italic;
-    color:var(--green); margin-bottom:0.3rem;
+    font-family:'Montserrat',sans-serif;
+    font-size:1.1rem; font-weight:900; letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--navy); margin-bottom:0.3rem;
   }
   .sh-sub { font-size:0.82rem; color:var(--grey-mid); margin-bottom:2rem; }
 
@@ -117,10 +128,10 @@
     border-bottom:1px solid var(--grey-light); background:var(--grey-pale); flex-wrap:wrap;
   }
   .map-bar-label { font-size:0.82rem; font-weight:500; color:var(--grey-dark); }
-  .map-bar-loc { font-size:0.78rem; color:var(--green-mid); }
+  .map-bar-loc { font-size:0.78rem; color:var(--navy-mid); }
   .map-bar-time { font-size:0.72rem; color:var(--grey-light); }
   .map-bar a {
-    margin-left:auto; font-size:0.78rem; color:var(--green-mid); text-decoration:none;
+    margin-left:auto; font-size:0.78rem; color:var(--navy-mid); text-decoration:none;
   }
   .map-bar a:hover { text-decoration:underline; }
   #map { width:100%; height:460px; }
@@ -139,8 +150,8 @@
     border-radius:6px; padding:1.25rem 1.5rem;
   }
   .sc-num {
-    font-family:'Cormorant Garamond',serif;
-    font-size:2rem; font-weight:500; color:var(--green); line-height:1;
+    font-family:'Montserrat',sans-serif;
+    font-size:2rem; font-weight:700; color:var(--navy); line-height:1;
   }
   .sc-label {
     font-size:0.72rem; font-weight:500; letter-spacing:0.1em;
@@ -151,9 +162,10 @@
   .countries-wrap { margin-top:2rem; }
   .countries-chips { display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:0.85rem; }
   .chip {
-    background:var(--white); border:1px solid var(--grey-light);
+    background:var(--navy-pale); border:1px solid var(--navy-light);
     border-radius:2px; padding:0.3rem 0.85rem;
     font-size:0.83rem; display:flex; align-items:center; gap:0.4rem;
+    color:var(--navy);
   }
   .chip-remove {
     color:var(--grey-light); cursor:pointer; background:none; border:none;
@@ -190,17 +202,25 @@
   .post-thumb-empty { background:var(--green-pale); }
   .post-body { flex:1; padding:1.1rem 1.25rem; }
   .post-body h3 {
-    font-family:'Cormorant Garamond',serif;
-    font-size:1.05rem; font-weight:500; color:var(--ink);
+    font-family:'Montserrat',sans-serif;
+    font-size:0.92rem; font-weight:700; color:var(--ink);
     margin-bottom:0.2rem; line-height:1.35;
   }
   .post-body p { font-size:0.82rem; color:var(--grey-mid); line-height:1.5; }
   .post-meta {
     padding:1.1rem 0.5rem; flex-shrink:0;
     text-align:center; display:flex; flex-direction:column;
-    justify-content:center; min-width:38px;
+    justify-content:center; min-width:44px;
   }
   .post-arrow { color:var(--grey-light); font-size:1rem; flex-shrink:0; align-self:center; padding-right:1rem; }
+  .pd-day {
+    font-family:'Montserrat',sans-serif;
+    font-size:1.1rem; font-weight:700; color:var(--navy); line-height:1; display:block;
+  }
+  .pd-mon {
+    font-size:0.6rem; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--grey-mid); display:block;
+  }
   .posts-loading {
     padding:2.5rem; text-align:center; color:var(--grey-mid);
     font-style:italic; font-size:0.9rem;
@@ -249,12 +269,12 @@
   .ig-strip p { font-size:0.85rem; color:var(--grey-mid); }
   .ig-strip strong { display:block; font-size:0.95rem; color:var(--ink); margin-bottom:0.15rem; }
   .btn-green {
-    background:var(--green); color:var(--white); border:none; border-radius:3px;
+    background:var(--navy); color:var(--white); border:none; border-radius:3px;
     padding:0.55rem 1.25rem; font-family:'Jost',sans-serif; font-size:0.82rem;
     font-weight:500; letter-spacing:0.06em; cursor:pointer; text-decoration:none;
     display:inline-block; transition:background 0.2s;
   }
-  .btn-green:hover { background:var(--green-mid); }
+  .btn-green:hover { background:var(--navy-mid); }
 
   .overlay {
     display:none; position:fixed; inset:0;
@@ -289,11 +309,12 @@
   }
 
   footer {
-    border-top:1px solid var(--grey-light); padding:2rem;
-    text-align:center; font-size:0.78rem; color:var(--grey-mid); margin-top:3rem;
+    background:var(--navy);
+    border-top:none; padding:2rem;
+    text-align:center; font-size:0.78rem; color:rgba(255,255,255,0.45); margin-top:3rem;
   }
-  footer a { color:var(--green-mid); text-decoration:none; margin:0 0.5rem; }
-  footer a:hover { text-decoration:underline; }
+  footer a { color:rgba(255,255,255,0.55); text-decoration:none; margin:0 0.5rem; }
+  footer a:hover { color:white; }
 
   @media(max-width:600px){
     nav { padding:0 1rem; }
@@ -309,7 +330,7 @@
 <body>
 
 <nav>
-  <a class="nav-brand" href="#">Sailing Acer</a>
+  <a class="nav-brand" href="#">SAILING ACER</a>
   <div class="nav-links">
     <button class="active" onclick="showPage('tracker')">Tracker</button>
     <button onclick="showPage('posts')">Posts</button>
@@ -318,21 +339,23 @@
 </nav>
 
 <div class="hero">
-  <div class="hero-eyebrow">Ev &amp; Mags · SV Acer</div>
-  <h1>Sailing Acer</h1>
-  <p class="hero-sub">It seemed like a good idea at the time.</p>
-  <div class="hero-location">
-    <span class="loc-label">Last known position</span>
-    <span class="loc-place" id="loc-text">loading…</span>
-  </div>
-  <div class="hero-stats">
-    <div class="hero-stat">
-      <span class="hs-num" id="h-countries">—</span>
-      <span class="hs-label">Countries</span>
+  <div class="hero-inner">
+    <div class="hero-eyebrow">Ev &amp; Mags · SV Acer</div>
+    <h1>SAILING<br>ACER</h1>
+    <p class="hero-sub">It seemed like a good idea at the time.</p>
+    <div class="hero-location">
+      <span class="loc-label">Last known position</span>
+      <span class="loc-place" id="loc-text">loading…</span>
     </div>
-    <div class="hero-stat">
-      <span class="hs-num" id="h-miles">—</span>
-      <span class="hs-label">Miles sailed</span>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <span class="hs-num" id="h-miles">—</span>
+        <span class="hs-label">Miles sailed</span>
+      </div>
+      <div class="hero-stat">
+        <span class="hs-num" id="h-countries">—</span>
+        <span class="hs-label">Countries</span>
+      </div>
     </div>
   </div>
 </div>
@@ -365,7 +388,7 @@
     </div>
 
     <div class="countries-wrap">
-      <p class="sh" style="font-size:1.25rem">Countries visited</p>
+      <p class="sh" style="font-size:1rem">Countries visited</p>
       <p class="sh-sub">Every flag along the way</p>
       <div class="countries-chips" id="countries-chips"></div>
     </div>
@@ -419,10 +442,11 @@
 </div>
 
 <footer>
-  <em style="font-family:'Cormorant Garamond',serif;font-size:1rem;color:var(--green)">Sailing Acer</em> — Ev &amp; Mags<br>
+  <span style="font-family:'Montserrat',sans-serif;font-size:0.9rem;font-weight:900;letter-spacing:0.08em;color:white">SAILING ACER</span> — Ev &amp; Mags<br>
   <a href="https://maggiemcnabb.substack.com" target="_blank">Substack</a>
   <a href="https://share.garmin.com/svacer" target="_blank">Tracker</a>
   <a href="https://instagram.com/sv_acer" target="_blank">Instagram</a>
+  <a href="https://www.noforeignland.com/map/user/6755353964351608" target="_blank">NoForeignLand</a>
 </footer>
 
 <div class="overlay" id="miles-overlay" onclick="if(event.target===this)closeMiles()">
