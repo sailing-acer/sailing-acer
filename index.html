@@ -55,7 +55,7 @@
     min-height: 260px;
     background-image: url('Acer_Ferox_Fakarava.JPEG');
     background-size: cover;
-    background-position: center;
+    background-position: 70% 85%;
     position: relative;
     display: flex; align-items: center;
     padding: 3rem 3rem;
@@ -63,7 +63,7 @@
   }
   .hero::before {
     content:''; position:absolute; inset:0;
-    background: linear-gradient(to right, rgba(0,0,0,0.72) 40%, rgba(0,0,0,0.1) 100%);
+    background: linear-gradient(to right, rgba(15,35,60,0.82) 35%, rgba(15,35,60,0.25) 65%, rgba(15,35,60,0.05) 100%);
   }
   .hero > * { position:relative; z-index:1; }
   .hero-inner { display: flex; flex-direction: column; align-items: flex-start; }
@@ -583,7 +583,7 @@ async function loadWorkerStats() {
   try {
     const res = await fetch(WORKER + '/stats');
     const data = await res.json();
-    if(data.miles) {
+    if(data.miles && data.miles > 0) {
       const mi = parseInt(data.miles).toLocaleString();
       document.getElementById('sc-miles').textContent = mi;
       document.getElementById('h-miles').textContent = mi;
