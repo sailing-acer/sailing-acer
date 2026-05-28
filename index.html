@@ -317,8 +317,8 @@
       <span class="hs-label">Countries</span>
     </div>
     <div class="hero-stat">
-      <span class="hs-num" id="h-posts">—</span>
-      <span class="hs-label">Dispatches</span>
+      <span class="hs-num" id="h-miles">—</span>
+      <span class="hs-label">Miles sailed</span>
     </div>
   </div>
 </div>
@@ -327,7 +327,7 @@
 <div id="page-tracker" class="page active">
   <div class="section">
     <p class="sh">Where we are</p>
-    <p class="sh-sub">Last recorded position from Garmin inReach · only on when underway</p>
+    <p class="sh-sub">Last recorded position from Garmin inReach</p>
     <div class="map-wrap">
       <div class="map-bar">
         <span class="map-bar-label">SV Acer</span>
@@ -343,12 +343,10 @@
       <div class="stat-card">
         <div class="sc-num" id="sc-countries">—</div>
         <div class="sc-label">Countries visited</div>
-        <div class="sc-note">updated by Maggie</div>
       </div>
-      <div class="stat-card">
-        <div class="sc-num" id="sc-posts">—</div>
-        <div class="sc-label">Dispatches</div>
-        <div class="sc-note">from Substack</div>
+      <div class="stat-card" onclick="openMilesModal()" style="cursor:pointer">
+        <div class="sc-num" id="sc-miles">—</div>
+        <div class="sc-label">Miles sailed</div>
       </div>
     </div>
 
@@ -413,7 +411,19 @@
   <a href="https://instagram.com/sv_acer" target="_blank">Instagram</a>
 </footer>
 
-<div class="overlay" id="country-overlay" onclick="if(event.target===this)closeCountry()">
+<div class="overlay" id="miles-overlay" onclick="if(event.target===this)closeMiles()">
+  <div class="modal">
+    <h3>Update miles sailed</h3>
+    <label>Nautical miles</label>
+    <input id="miles-input" type="number" min="0" placeholder="e.g. 4200" onkeydown="if(event.key==='Enter')saveMiles()">
+    <div class="modal-btns">
+      <button class="btn-ghost" onclick="closeMiles()">Cancel</button>
+      <button class="btn-green" onclick="saveMiles()">Save</button>
+    </div>
+  </div>
+</div>
+
+
   <div class="modal">
     <h3>Add a country</h3>
     <label>Country name</label>
@@ -434,7 +444,7 @@ const GARMIN_KML = 'https://share.garmin.com/Feed/Share/svAcer';
 
 // ── STATE ─────────────────────────────────────────────────
 const SK = 'sailing_acer_v5';
-let S = { countries: [], postCount: 0 };
+let S = { countries: [], postCount: 0, miles: 0 };
 try { const r = localStorage.getItem(SK); if(r) S = JSON.parse(r); } catch(e){}
 function save(){ try{ localStorage.setItem(SK, JSON.stringify(S)); } catch(e){} }
 
@@ -442,7 +452,7 @@ function save(){ try{ localStorage.setItem(SK, JSON.stringify(S)); } catch(e){} 
 function setMapPosition(lat, lon) {
   // OpenStreetMap embed with marker — works everywhere, no JS library needed
   const zoom = 8;
-  const url = `https://www.openstreetmap.org/export/embed.html?bbox=${lon-2},${lat-1.5},${lon+2},${lat+1.5}&layer=mapnik&marker=${lat},${lon}`;
+  const url = `https://www.openstreetmap.org/export/embed.html?bbox=${lon-0.5},${lat-0.35},${lon+0.5},${lat+0.35}&layer=mapnik&marker=${lat},${lon}`;
   document.getElementById('map-iframe').src = url;
 }
 
@@ -544,7 +554,41 @@ function showPage(p) {
   if(p === 'tracker') {} // map is an iframe, no refresh needed
 }
 
-// ── COUNTRIES ─────────────────────────────────────────────
+// ── LOAD STATS FROM WORKER ────────────────────────────────
+async function loadWorkerStats() {
+  try {
+    const res = await fetch(WORKER + '/stats');
+    const data = await res.json();
+    if(data.miles) {
+      const mi = parseInt(data.miles).toLocaleString();
+      document.getElementById('sc-miles').textContent = mi;
+      document.getElementById('h-miles').textContent = mi;
+    }
+    if(data.countries && data.countries.length > 0) {
+      S.countries = data.countries;
+      renderCountries();
+    }
+  } catch(e) {
+    // Fall back to localStorage values silently
+  }
+}
+
+
+function openMilesModal() {
+  document.getElementById('miles-input').value = S.miles || '';
+  document.getElementById('miles-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('miles-input').focus(), 80);
+}
+function closeMiles() { document.getElementById('miles-overlay').classList.remove('open'); }
+function saveMiles() {
+  const val = parseInt(document.getElementById('miles-input').value) || 0;
+  S.miles = val; save();
+  document.getElementById('sc-miles').textContent = val.toLocaleString() || '—';
+  document.getElementById('h-miles').textContent = val.toLocaleString() || '—';
+  closeMiles();
+}
+
+
 function renderCountries() {
   const wrap = document.getElementById('countries-chips');
   wrap.innerHTML = '';
@@ -604,13 +648,16 @@ async function loadPosts() {
 
 function renderCounts() {
   const pc = S.postCount || '—';
-  document.getElementById('sc-posts').textContent = pc;
-  document.getElementById('h-posts').textContent = pc;
+  document.getElementById('sc-posts') && (document.getElementById('sc-posts').textContent = pc);
+  const mi = S.miles ? S.miles.toLocaleString() : '—';
+  document.getElementById('sc-miles').textContent = mi;
+  document.getElementById('h-miles').textContent = mi;
 }
 
 // ── INIT ──────────────────────────────────────────────────
 renderCountries();
 renderCounts();
+loadWorkerStats();
 loadGarminPosition();
 </script>
 </body>

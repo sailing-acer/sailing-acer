@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sailing Acer — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #3d5a3e; --green-mid: #567a58; --green-pale: #eef3ee;
+    --grey-light: #d4d4cf; --grey-mid: #6b6b68; --cream: #faf9f6;
+    --white: #ffffff; --ink: #2a2a28;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Jost',sans-serif; background:var(--cream); color:var(--ink); min-height:100vh; display:flex; align-items:center; justify-content:center; padding:2rem; }
+  .card { background:var(--white); border:1px solid var(--grey-light); border-radius:8px; padding:2.5rem; width:100%; max-width:480px; }
+  h1 { font-family:'Cormorant Garamond',serif; font-size:1.8rem; font-style:italic; color:var(--green); margin-bottom:0.25rem; }
+  .subtitle { font-size:0.8rem; color:var(--grey-mid); margin-bottom:2rem; letter-spacing:0.04em; }
+  .field { margin-bottom:1.25rem; }
+  label { display:block; font-size:0.75rem; font-weight:500; letter-spacing:0.1em; text-transform:uppercase; color:var(--grey-mid); margin-bottom:0.4rem; }
+  input[type=text], input[type=password], input[type=number] {
+    width:100%; padding:0.65rem 0.9rem; border:1px solid var(--grey-light);
+    border-radius:4px; font-family:'Jost',sans-serif; font-size:0.95rem;
+    color:var(--ink); background:var(--cream);
+  }
+  input:focus { outline:none; border-color:var(--green-mid); }
+  .countries-wrap { display:flex; flex-wrap:wrap; gap:0.4rem; margin-top:0.5rem; }
+  .ctag { background:var(--green-pale); border:1px solid var(--green-mid); border-radius:2px; padding:0.25rem 0.6rem; font-size:0.82rem; display:flex; align-items:center; gap:0.35rem; }
+  .ctag button { background:none; border:none; cursor:pointer; color:var(--grey-mid); font-size:0.9rem; line-height:1; padding:0; }
+  .add-country { display:flex; gap:0.5rem; margin-top:0.65rem; }
+  .add-country input { flex:1; }
+  .btn-small { background:var(--green); color:white; border:none; border-radius:4px; padding:0.5rem 0.9rem; font-family:'Jost',sans-serif; font-size:0.82rem; cursor:pointer; white-space:nowrap; }
+  .btn-small:hover { background:var(--green-mid); }
+  .divider { border:none; border-top:1px solid var(--grey-light); margin:1.75rem 0; }
+  .btn-save { width:100%; background:var(--green); color:white; border:none; border-radius:4px; padding:0.8rem; font-family:'Jost',sans-serif; font-size:0.95rem; font-weight:500; cursor:pointer; letter-spacing:0.04em; margin-top:0.5rem; }
+  .btn-save:hover { background:var(--green-mid); }
+  .status { text-align:center; font-size:0.85rem; margin-top:1rem; min-height:1.2em; }
+  .status.ok { color:var(--green-mid); }
+  .status.err { color:#c0392b; }
+  #login-section {}
+  #admin-section { display:none; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Sailing Acer</h1>
+  <p class="subtitle">Admin panel · update voyage stats</p>
+
+  <!-- LOGIN -->
+  <div id="login-section">
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="password" placeholder="Enter password" onkeydown="if(event.key==='Enter')login()">
+    </div>
+    <button class="btn-save" onclick="login()">Sign in</button>
+    <p class="status err" id="login-status"></p>
+  </div>
+
+  <!-- ADMIN -->
+  <div id="admin-section">
+    <div class="field">
+      <label>Miles sailed (nautical miles)</label>
+      <input type="number" id="miles" min="0" placeholder="e.g. 4200">
+    </div>
+
+    <div class="field">
+      <label>Countries visited</label>
+      <div class="countries-wrap" id="countries-wrap"></div>
+      <div class="add-country">
+        <input type="text" id="new-country" placeholder="Country name e.g. French Polynesia" onkeydown="if(event.key==='Enter')addCountry()">
+        <input type="text" id="new-flag" placeholder="🇵🇫" maxlength="4" style="width:70px">
+        <button class="btn-small" onclick="addCountry()">Add</button>
+      </div>
+    </div>
+
+    <hr class="divider">
+    <button class="btn-save" onclick="saveStats()">Save changes</button>
+    <p class="status" id="save-status"></p>
+  </div>
+</div>
+
+<script>
+const WORKER = 'https://garmin-tracker.mm-scheunert.workers.dev';
+let password = '';
+let countries = [];
+
+async function login() {
+  const pw = document.getElementById('password').value;
+  if(!pw) return;
+  // Try fetching stats to verify worker is up, then verify password on save
+  try {
+    const res = await fetch(WORKER + '/stats');
+    const data = await res.json();
+    // Test password by doing a dummy save
+    const test = await fetch(WORKER + '/stats', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...data, password: pw })
+    });
+    if(test.status === 401) {
+      document.getElementById('login-status').textContent = 'Incorrect password.';
+      return;
+    }
+    password = pw;
+    document.getElementById('login-section').style.display = 'none';
+    document.getElementById('admin-section').style.display = 'block';
+    document.getElementById('miles').value = data.miles || '';
+    countries = data.countries || [];
+    renderCountries();
+  } catch(e) {
+    document.getElementById('login-status').textContent = 'Could not connect to server.';
+  }
+}
+
+function renderCountries() {
+  const wrap = document.getElementById('countries-wrap');
+  wrap.innerHTML = '';
+  countries.forEach((c, i) => {
+    const tag = document.createElement('div');
+    tag.className = 'ctag';
+    tag.innerHTML = `${c.flag||''} ${c.name} <button onclick="removeCountry(${i})">×</button>`;
+    wrap.appendChild(tag);
+  });
+}
+
+function addCountry() {
+  const name = document.getElementById('new-country').value.trim();
+  if(!name) return;
+  const flag = document.getElementById('new-flag').value.trim();
+  countries.push({ name, flag });
+  document.getElementById('new-country').value = '';
+  document.getElementById('new-flag').value = '';
+  renderCountries();
+}
+
+function removeCountry(i) {
+  countries.splice(i, 1);
+  renderCountries();
+}
+
+async function saveStats() {
+  const status = document.getElementById('save-status');
+  status.className = 'status';
+  status.textContent = 'Saving…';
+  try {
+    const res = await fetch(WORKER + '/stats', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        miles: parseInt(document.getElementById('miles').value) || 0,
+        countries,
+        password
+      })
+    });
+    if(res.ok) {
+      status.className = 'status ok';
+      status.textContent = '✓ Saved! Changes are live on the site.';
+    } else {
+      status.className = 'status err';
+      status.textContent = 'Error saving. Try again.';
+    }
+  } catch(e) {
+    status.className = 'status err';
+    status.textContent = 'Could not connect to server.';
+  }
+}
+</script>
+</body>
+</html>
