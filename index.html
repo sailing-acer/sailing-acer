@@ -63,7 +63,7 @@
   }
   .hero::before {
     content:''; position:absolute; inset:0;
-    background: linear-gradient(to right, rgba(15,35,60,0.82) 35%, rgba(15,35,60,0.25) 65%, rgba(15,35,60,0.05) 100%);
+    background: linear-gradient(to right, rgba(15,35,60,0.85) 25%, rgba(15,35,60,0.4) 50%, rgba(15,35,60,0) 65%);
   }
   .hero > * { position:relative; z-index:1; }
   .hero-inner { display: flex; flex-direction: column; align-items: flex-start; }
@@ -381,7 +381,7 @@
         <div class="sc-num" id="sc-countries">—</div>
         <div class="sc-label">Countries visited</div>
       </div>
-      <div class="stat-card" onclick="openMilesModal()" style="cursor:pointer">
+      <div class="stat-card">
         <div class="sc-num" id="sc-miles">—</div>
         <div class="sc-label">Miles sailed</div>
       </div>
@@ -680,9 +680,7 @@ async function loadPosts() {
 function renderCounts() {
   const pc = S.postCount || '—';
   document.getElementById('sc-posts') && (document.getElementById('sc-posts').textContent = pc);
-  const mi = S.miles ? S.miles.toLocaleString() : '—';
-  document.getElementById('sc-miles').textContent = mi;
-  document.getElementById('h-miles').textContent = mi;
+  // Miles are set only by loadWorkerStats — don't touch them here
 }
 
 // ── INIT ──────────────────────────────────────────────────
