@@ -250,16 +250,52 @@
   .hosting-opt:hover { border-color:var(--green-mid); }
   .hosting-opt strong { display:block; font-size:0.85rem; font-weight:500; color:var(--ink); }
   .hosting-opt span { font-size:0.75rem; color:var(--grey-mid); }
-  .gallery { columns:3; gap:0.6rem; }
-  @media(max-width:600px) { .gallery { columns:2; } }
+  .gallery-section { margin-bottom:3rem; }
+  .gallery-section-title {
+    font-family:'Montserrat',sans-serif; font-size:0.85rem; font-weight:700;
+    letter-spacing:0.1em; text-transform:uppercase; color:var(--navy);
+    margin-bottom:1rem; padding-bottom:0.5rem;
+    border-bottom:2px solid var(--navy);
+    display:inline-block;
+  }
+  .gallery { columns:2; gap:0.75rem; }
+  @media(max-width:600px) { .gallery { columns:1; } }
   .gallery-item {
     break-inside:avoid; margin-bottom:0.6rem; border-radius:4px;
     overflow:hidden; border:1px solid var(--grey-light);
+    cursor:pointer; transition:opacity 0.2s;
   }
+  .gallery-item:hover { opacity:0.88; }
+  .gallery-item img { width:100%; display:block; }
   .gallery-placeholder {
     width:100%; display:flex; align-items:center; justify-content:center;
-    background:var(--green-pale); color:var(--green-mid); font-size:1.6rem;
+    background:var(--navy-pale); color:var(--navy-mid); font-size:1.6rem;
   }
+  .gallery-loading {
+    text-align:center; padding:2rem; color:var(--grey-mid);
+    font-style:italic; font-size:0.88rem;
+  }
+  .lightbox {
+    display:none; position:fixed; inset:0; z-index:2000;
+    background:rgba(0,0,0,0.92); align-items:center; justify-content:center;
+  }
+  .lightbox.open { display:flex; }
+  .lightbox img { max-width:88vw; max-height:88vh; border-radius:4px; }
+  .lightbox-close {
+    position:absolute; top:1.25rem; right:1.5rem;
+    color:white; font-size:2rem; cursor:pointer;
+    background:none; border:none; line-height:1;
+  }
+  .lightbox-arrow {
+    position:absolute; top:50%; transform:translateY(-50%);
+    color:white; font-size:2.5rem; cursor:pointer;
+    background:rgba(0,0,0,0.3); border:none; line-height:1;
+    padding:0.5rem 0.85rem; border-radius:4px;
+    transition:background 0.2s; user-select:none;
+  }
+  .lightbox-arrow:hover { background:rgba(0,0,0,0.6); }
+  .lightbox-prev { left:1rem; }
+  .lightbox-next { right:1rem; }
   .ig-strip {
     margin-top:2rem; padding:1.25rem 1.75rem;
     background:var(--white); border:1px solid var(--grey-light);
@@ -397,30 +433,13 @@
 <div id="page-photos" class="page">
   <div class="section">
     <p class="sh">The view from Acer</p>
-    <p class="sh-sub">Underwater, drone, and deck shots</p>
-    <div class="photos-note">
-      <h3>Adding your photos</h3>
-      <p>Upload photos to any free host, then drop the image URLs into the HTML where marked. One edit, no account needed.</p>
-      <div class="hosting-opts">
-        <button class="hosting-opt"><strong>Google Photos</strong><span>Easiest if you already use it</span></button>
-        <button class="hosting-opt"><strong>Cloudinary</strong><span>25 GB free, built for galleries</span></button>
-        <button class="hosting-opt"><strong>GitHub repo</strong><span>Already free with the site</span></button>
-      </div>
-    </div>
-    <!-- Replace placeholders with real images:
-         <div class="gallery-item"><img src="YOUR_URL" alt="description" style="width:100%;display:block;"></div> -->
-    <div class="gallery">
-      <div class="gallery-item"><div class="gallery-placeholder" style="aspect-ratio:4/3">🐠</div></div>
-      <div class="gallery-item"><div class="gallery-placeholder" style="aspect-ratio:3/2">🌊</div></div>
-      <div class="gallery-item"><div class="gallery-placeholder" style="aspect-ratio:3/4">🚁</div></div>
-      <div class="gallery-item"><div class="gallery-placeholder" style="aspect-ratio:4/3">⛵</div></div>
-      <div class="gallery-item"><div class="gallery-placeholder" style="aspect-ratio:1/1">🌅</div></div>
-      <div class="gallery-item"><div class="gallery-placeholder" style="aspect-ratio:4/3">🐢</div></div>
-    </div>
+
+    <div id="gallery-root"></div>
+
     <div class="ig-strip">
       <div>
         <strong>More on Instagram</strong>
-        <p>Follow <a href="https://instagram.com/sv_acer" target="_blank" style="color:var(--green-mid)">@sv_acer</a> for the daily stuff</p>
+        <p>Follow <a href="https://instagram.com/sv_acer" target="_blank" style="color:var(--navy-mid)">@sv_acer</a> for the daily stuff</p>
       </div>
       <a class="btn-green" href="https://instagram.com/sv_acer" target="_blank">@sv_acer</a>
     </div>
@@ -435,7 +454,14 @@
   <a href="https://www.noforeignland.com/map/user/6755353964351608" target="_blank">NoForeignLand</a>
 </footer>
 
-<div class="overlay" id="miles-overlay" onclick="if(event.target===this)closeMiles()">
+<div class="lightbox" id="lightbox" onclick="if(event.target===this)closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">×</button>
+  <button class="lightbox-arrow lightbox-prev" onclick="navigateLightbox(-1)">‹</button>
+  <img id="lightbox-img" src="" alt="">
+  <button class="lightbox-arrow lightbox-next" onclick="navigateLightbox(1)">›</button>
+</div>
+
+<script>
   <div class="modal">
     <h3>Update miles sailed</h3>
     <label>Nautical miles</label>
@@ -553,6 +579,7 @@ function timeAgo(date) {
 
 // ── NAV ───────────────────────────────────────────────────
 let postsLoaded = false;
+let galleryLoaded = false;
 function showPage(p) {
   document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
   document.querySelectorAll('.nav-links button').forEach(x => x.classList.remove('active'));
@@ -560,6 +587,7 @@ function showPage(p) {
   ['home','photos'].forEach((n,i) => {
     if(n===p) document.querySelectorAll('.nav-links button')[i].classList.add('active');
   });
+  if(p === 'photos' && !galleryLoaded) { galleryLoaded = true; loadGallery(); }
 }
 
 // ── LOAD STATS FROM WORKER ────────────────────────────────
@@ -666,6 +694,72 @@ function renderCounts() {
   document.getElementById('sc-posts') && (document.getElementById('sc-posts').textContent = pc);
   // Miles are set only by loadWorkerStats — don't touch them here
 }
+
+// ── CLOUDINARY GALLERY ────────────────────────────────────
+const CLOUD_NAME = 'du3vwzopz';
+const LOCATIONS = [
+  { folder: 'Final days in the United States', label: 'Final Days in the United States' },
+  { folder: 'Mexico',                          label: 'Mexico' },
+  { folder: 'Pacific Crossing',                label: 'Pacific Crossing' },
+  { folder: 'Marquesas',                       label: 'Marquesas' },
+  { folder: 'Tuamotus',                        label: 'Tuamotus' },
+];
+
+async function loadGallery() {
+  const root = document.getElementById('gallery-root');
+  root.innerHTML = '<div class="gallery-loading">Loading photos…</div>';
+  let html = '';
+  let anyPhotos = false;
+  allPhotoUrls = [];
+
+  for(const loc of LOCATIONS) {
+    const url = `https://res.cloudinary.com/${CLOUD_NAME}/image/list/${encodeURIComponent(loc.folder)}.json`;
+    try {
+      const res = await fetch(url);
+      if(!res.ok) continue;
+      const data = await res.json();
+      const resources = data.resources || [];
+      if(!resources.length) continue;
+      anyPhotos = true;
+      html += `<div class="gallery-section">
+        <div class="gallery-section-title">${loc.label}</div>
+        <div class="gallery">`;
+      resources.forEach(r => {
+        const imgUrl = `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/q_auto,f_auto,w_800/${r.public_id}.${r.format}`;
+        const fullUrl = `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/${r.public_id}.${r.format}`;
+        allPhotoUrls.push(fullUrl);
+        html += `<div class="gallery-item" onclick="openLightbox('${fullUrl}')">
+          <img src="${imgUrl}" alt="${loc.label}" loading="lazy">
+        </div>`;
+      });
+      html += `</div></div>`;
+    } catch(e) { continue; }
+  }
+
+  root.innerHTML = anyPhotos ? html : '<div class="gallery-loading">No photos yet — check back soon!</div>';
+}
+
+let allPhotoUrls = [];
+let currentPhotoIndex = 0;
+
+function openLightbox(url) {
+  currentPhotoIndex = allPhotoUrls.indexOf(url);
+  document.getElementById('lightbox-img').src = url;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.getElementById('lightbox-img').src = '';
+}
+function navigateLightbox(dir) {
+  currentPhotoIndex = (currentPhotoIndex + dir + allPhotoUrls.length) % allPhotoUrls.length;
+  document.getElementById('lightbox-img').src = allPhotoUrls[currentPhotoIndex];
+}
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape') closeLightbox();
+  if(e.key === 'ArrowRight') navigateLightbox(1);
+  if(e.key === 'ArrowLeft') navigateLightbox(-1);
+});
 
 // ── INIT ──────────────────────────────────────────────────
 renderCountries();
