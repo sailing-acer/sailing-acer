@@ -165,28 +165,31 @@
     border-radius:6px; overflow:hidden;
   }
   .post-item {
-    background:var(--white); padding:1.4rem 1.75rem;
+    background:var(--white); padding:0;
     text-decoration:none; color:inherit;
-    display:flex; align-items:center; gap:1.5rem; transition:background 0.15s;
+    display:flex; align-items:stretch;
+    transition:background 0.15s; overflow:hidden;
   }
   .post-item:hover { background:var(--grey-pale); }
-  .post-datecol { min-width:38px; text-align:center; flex-shrink:0; }
-  .pd-day {
-    font-family:'Cormorant Garamond',serif;
-    font-size:1.4rem; font-weight:500; color:var(--green); line-height:1; display:block;
+  .post-thumb {
+    width:110px; flex-shrink:0;
+    background-size:cover; background-position:center;
+    background-color:var(--green-pale);
   }
-  .pd-mon {
-    font-size:0.62rem; letter-spacing:0.1em; text-transform:uppercase;
-    color:var(--grey-mid); display:block;
-  }
-  .post-body { flex:1; }
+  .post-thumb-empty { background:var(--green-pale); }
+  .post-body { flex:1; padding:1.1rem 1.25rem; }
   .post-body h3 {
     font-family:'Cormorant Garamond',serif;
     font-size:1.05rem; font-weight:500; color:var(--ink);
     margin-bottom:0.2rem; line-height:1.35;
   }
   .post-body p { font-size:0.82rem; color:var(--grey-mid); line-height:1.5; }
-  .post-arrow { color:var(--grey-light); font-size:1rem; flex-shrink:0; }
+  .post-meta {
+    padding:1.1rem 0.5rem; flex-shrink:0;
+    text-align:center; display:flex; flex-direction:column;
+    justify-content:center; min-width:38px;
+  }
+  .post-arrow { color:var(--grey-light); font-size:1rem; flex-shrink:0; align-self:center; padding-right:1rem; }
   .posts-loading {
     padding:2.5rem; text-align:center; color:var(--grey-mid);
     font-style:italic; font-size:0.9rem;
@@ -640,13 +643,27 @@ async function loadPosts() {
       const title = item.querySelector('title')?.textContent || 'Untitled';
       const link = item.querySelector('link')?.textContent || item.querySelector('guid')?.textContent || '#';
       const pubDate = item.querySelector('pubDate')?.textContent || '';
-      const desc = (item.querySelector('description')?.textContent || '').replace(/<[^>]+>/g,'').slice(0,130) + '…';
+      const desc = (item.querySelector('description')?.textContent || '').replace(/<[^>]+>/g,'').slice(0,110) + '…';
       const d = pubDate ? new Date(pubDate) : null;
       const dayStr = d ? d.getDate() : '';
       const monStr = d ? mons[d.getMonth()] : '';
+      // Try to get thumbnail from media:content, enclosure, or itunes:image
+      const media = item.querySelector('content') || item.querySelector('enclosure');
+      const itunesImg = item.querySelector('image');
+      let thumb = media?.getAttribute('url') || itunesImg?.getAttribute('href') || '';
+      // Also try extracting first img src from description HTML
+      if(!thumb) {
+        const descHtml = item.querySelector('description')?.textContent || '';
+        const imgMatch = descHtml.match(/<img[^>]+src=["']([^"']+)["']/i);
+        if(imgMatch) thumb = imgMatch[1];
+      }
+      const thumbHtml = thumb
+        ? `<div class="post-thumb" style="background-image:url('${thumb}')"></div>`
+        : `<div class="post-thumb post-thumb-empty"></div>`;
       return `<a class="post-item" href="${link}" target="_blank">
-        <div class="post-datecol"><span class="pd-day">${dayStr}</span><span class="pd-mon">${monStr}</span></div>
+        ${thumbHtml}
         <div class="post-body"><h3>${title}</h3><p>${desc}</p></div>
+        <div class="post-meta"><span class="pd-day">${dayStr}</span> <span class="pd-mon">${monStr}</span></div>
         <div class="post-arrow">→</div>
       </a>`;
     }).join('') + '</div>';
