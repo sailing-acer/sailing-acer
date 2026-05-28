@@ -625,19 +625,28 @@ function removeCountry(i) { S.countries.splice(i,1); save(); renderCountries(); 
 async function loadPosts() {
   postsLoaded = true;
   const container = document.getElementById('posts-container');
-  const url = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://maggiemcnabb.substack.com/feed') + '&count=50';
   try {
-    const res = await fetch(url);
-    const data = await res.json();
-    if(data.status !== 'ok' || !data.items?.length) throw new Error();
+    const proxyUrl = WORKER + '?url=' + encodeURIComponent('https://maggiemcnabb.substack.com/feed');
+    const res = await fetch(proxyUrl);
+    if(!res.ok) throw new Error('fetch failed');
+    const text = await res.text();
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(text, 'text/xml');
+    const items = Array.from(xml.querySelectorAll('item'));
+    if(!items.length) throw new Error('no items');
     const mons = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    S.postCount = data.items.length; save(); renderCounts();
-    container.innerHTML = '<div class="posts-list">' + data.items.map(item => {
-      const d = new Date(item.pubDate);
-      const desc = (item.description||'').replace(/<[^>]+>/g,'').slice(0,130) + '…';
-      return `<a class="post-item" href="${item.link}" target="_blank">
-        <div class="post-datecol"><span class="pd-day">${d.getDate()}</span><span class="pd-mon">${mons[d.getMonth()]}</span></div>
-        <div class="post-body"><h3>${item.title}</h3><p>${desc}</p></div>
+    S.postCount = items.length; save(); renderCounts();
+    container.innerHTML = '<div class="posts-list">' + items.map(item => {
+      const title = item.querySelector('title')?.textContent || 'Untitled';
+      const link = item.querySelector('link')?.textContent || item.querySelector('guid')?.textContent || '#';
+      const pubDate = item.querySelector('pubDate')?.textContent || '';
+      const desc = (item.querySelector('description')?.textContent || '').replace(/<[^>]+>/g,'').slice(0,130) + '…';
+      const d = pubDate ? new Date(pubDate) : null;
+      const dayStr = d ? d.getDate() : '';
+      const monStr = d ? mons[d.getMonth()] : '';
+      return `<a class="post-item" href="${link}" target="_blank">
+        <div class="post-datecol"><span class="pd-day">${dayStr}</span><span class="pd-mon">${monStr}</span></div>
+        <div class="post-body"><h3>${title}</h3><p>${desc}</p></div>
         <div class="post-arrow">→</div>
       </a>`;
     }).join('') + '</div>';
