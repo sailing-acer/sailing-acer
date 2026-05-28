@@ -332,8 +332,7 @@
 <nav>
   <a class="nav-brand" href="#">SAILING ACER</a>
   <div class="nav-links">
-    <button class="active" onclick="showPage('tracker')">Tracker</button>
-    <button onclick="showPage('posts')">Posts</button>
+    <button class="active" onclick="showPage('home')">Home</button>
     <button onclick="showPage('photos')">Photos</button>
   </div>
 </nav>
@@ -360,9 +359,10 @@
   </div>
 </div>
 
-<!-- TRACKER -->
-<div id="page-tracker" class="page active">
+<!-- HOME — tracker + posts combined -->
+<div id="page-home" class="page active">
   <div class="section">
+
     <p class="sh">Where we are</p>
     <p class="sh-sub">Last recorded position from Garmin inReach</p>
     <div class="map-wrap">
@@ -376,34 +376,20 @@
     </div>
     <p class="map-note" id="map-note">Loading last known position…</p>
 
-    <div class="stats-row" style="margin-top:2rem">
-      <div class="stat-card">
-        <div class="sc-num" id="sc-countries">—</div>
-        <div class="sc-label">Countries visited</div>
-      </div>
-      <div class="stat-card">
-        <div class="sc-num" id="sc-miles">—</div>
-        <div class="sc-label">Miles sailed</div>
-      </div>
-    </div>
-
-    <div class="countries-wrap">
+    <div class="countries-wrap" style="margin-top:1.5rem; margin-bottom:3rem">
       <p class="sh" style="font-size:1rem">Countries visited</p>
-      <p class="sh-sub">Every flag along the way</p>
       <div class="countries-chips" id="countries-chips"></div>
     </div>
-  </div>
-</div>
 
-<!-- POSTS -->
-<div id="page-posts" class="page">
-  <div class="section">
-    <p class="sh">Dispatches from sea</p>
-    <p class="sh-sub">All posts from <a href="https://maggiemcnabb.substack.com" target="_blank" style="color:var(--green-mid)">maggiemcnabb.substack.com</a></p>
-    <div id="posts-container"><div class="posts-loading">Loading…</div></div>
-    <div class="posts-footer">
-      <a href="https://maggiemcnabb.substack.com" target="_blank">Subscribe on Substack →</a>
+    <div style="border-top:1px solid var(--grey-light); padding-top:3rem; margin-top:1rem">
+      <p class="sh">What we're up to</p>
+      <p class="sh-sub">All dispatches from <a href="https://maggiemcnabb.substack.com" target="_blank" style="color:var(--navy-mid)">maggiemcnabb.substack.com</a></p>
+      <div id="posts-container"><div class="posts-loading">Loading…</div></div>
+      <div class="posts-footer" style="margin-top:1.5rem; text-align:center; font-size:0.82rem">
+        <a href="https://maggiemcnabb.substack.com" target="_blank" style="color:var(--navy-mid)">Subscribe on Substack →</a>
+      </div>
     </div>
+
   </div>
 </div>
 
@@ -571,11 +557,9 @@ function showPage(p) {
   document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
   document.querySelectorAll('.nav-links button').forEach(x => x.classList.remove('active'));
   document.getElementById('page-' + p).classList.add('active');
-  ['tracker','posts','photos'].forEach((n,i) => {
+  ['home','photos'].forEach((n,i) => {
     if(n===p) document.querySelectorAll('.nav-links button')[i].classList.add('active');
   });
-  if(p === 'posts' && !postsLoaded) loadPosts();
-  if(p === 'tracker') {} // map is an iframe, no refresh needed
 }
 
 // ── LOAD STATS FROM WORKER ────────────────────────────────
@@ -585,7 +569,7 @@ async function loadWorkerStats() {
     const data = await res.json();
     if(data.miles && data.miles > 0) {
       const mi = parseInt(data.miles).toLocaleString();
-      document.getElementById('sc-miles').textContent = mi;
+      document.getElementById('sc-miles') && (document.getElementById('sc-miles').textContent = mi);
       document.getElementById('h-miles').textContent = mi;
     }
     if(data.countries && data.countries.length > 0) {
@@ -624,7 +608,7 @@ function renderCountries() {
     wrap.appendChild(chip);
   });
   const n = S.countries.length;
-  document.getElementById('sc-countries').textContent = n || '—';
+  document.getElementById('sc-countries') && (document.getElementById('sc-countries').textContent = n || '—');
   document.getElementById('h-countries').textContent = n || '—';
 }
 function removeCountry(i) { S.countries.splice(i,1); save(); renderCountries(); }
@@ -688,6 +672,7 @@ renderCountries();
 renderCounts();
 loadWorkerStats();
 loadGarminPosition();
+loadPosts();
 </script>
 </body>
 </html>
