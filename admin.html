@@ -13,7 +13,7 @@
   }
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family:'Jost',sans-serif; background:var(--cream); color:var(--ink); min-height:100vh; display:flex; align-items:center; justify-content:center; padding:2rem; }
-  .card { background:var(--white); border:1px solid var(--grey-light); border-radius:8px; padding:2.5rem; width:100%; max-width:480px; }
+  .card { background:var(--white); border:1px solid var(--grey-light); border-radius:8px; padding:2.5rem; width:100%; max-width:500px; }
   h1 { font-family:'Cormorant Garamond',serif; font-size:1.8rem; font-style:italic; color:var(--green); margin-bottom:0.25rem; }
   .subtitle { font-size:0.8rem; color:var(--grey-mid); margin-bottom:2rem; letter-spacing:0.04em; }
   .field { margin-bottom:1.25rem; }
@@ -24,20 +24,38 @@
     color:var(--ink); background:var(--cream);
   }
   input:focus { outline:none; border-color:var(--green-mid); }
-  .countries-wrap { display:flex; flex-wrap:wrap; gap:0.4rem; margin-top:0.5rem; }
-  .ctag { background:var(--green-pale); border:1px solid var(--green-mid); border-radius:2px; padding:0.25rem 0.6rem; font-size:0.82rem; display:flex; align-items:center; gap:0.35rem; }
-  .ctag button { background:none; border:none; cursor:pointer; color:var(--grey-mid); font-size:0.9rem; line-height:1; padding:0; }
-  .add-country { display:flex; gap:0.5rem; margin-top:0.65rem; }
-  .add-country input { flex:1; }
-  .btn-small { background:var(--green); color:white; border:none; border-radius:4px; padding:0.5rem 0.9rem; font-family:'Jost',sans-serif; font-size:0.82rem; cursor:pointer; white-space:nowrap; }
-  .btn-small:hover { background:var(--green-mid); }
+
+  /* Country search */
+  .country-search-wrap { position:relative; }
+  .dropdown {
+    position:absolute; top:100%; left:0; right:0;
+    background:var(--white); border:1px solid var(--grey-light);
+    border-top:none; border-radius:0 0 4px 4px;
+    max-height:200px; overflow-y:auto; z-index:100;
+    display:none;
+  }
+  .dropdown.open { display:block; }
+  .dropdown-item {
+    padding:0.55rem 0.9rem; cursor:pointer; font-size:0.9rem;
+    display:flex; align-items:center; gap:0.5rem;
+  }
+  .dropdown-item:hover { background:var(--green-pale); }
+
+  .countries-wrap { display:flex; flex-wrap:wrap; gap:0.4rem; margin-top:0.75rem; }
+  .ctag {
+    background:var(--green-pale); border:1px solid var(--green-mid);
+    border-radius:2px; padding:0.25rem 0.6rem; font-size:0.82rem;
+    display:flex; align-items:center; gap:0.35rem;
+  }
+  .ctag button { background:none; border:none; cursor:pointer; color:var(--grey-mid); font-size:1rem; line-height:1; padding:0; }
+  .ctag button:hover { color:var(--ink); }
+
   .divider { border:none; border-top:1px solid var(--grey-light); margin:1.75rem 0; }
   .btn-save { width:100%; background:var(--green); color:white; border:none; border-radius:4px; padding:0.8rem; font-family:'Jost',sans-serif; font-size:0.95rem; font-weight:500; cursor:pointer; letter-spacing:0.04em; margin-top:0.5rem; }
   .btn-save:hover { background:var(--green-mid); }
   .status { text-align:center; font-size:0.85rem; margin-top:1rem; min-height:1.2em; }
   .status.ok { color:var(--green-mid); }
   .status.err { color:#c0392b; }
-  #login-section {}
   #admin-section { display:none; }
 </style>
 </head>
@@ -46,7 +64,6 @@
   <h1>Sailing Acer</h1>
   <p class="subtitle">Admin panel · update voyage stats</p>
 
-  <!-- LOGIN -->
   <div id="login-section">
     <div class="field">
       <label>Password</label>
@@ -56,7 +73,6 @@
     <p class="status err" id="login-status"></p>
   </div>
 
-  <!-- ADMIN -->
   <div id="admin-section">
     <div class="field">
       <label>Miles sailed (nautical miles)</label>
@@ -65,12 +81,11 @@
 
     <div class="field">
       <label>Countries visited</label>
-      <div class="countries-wrap" id="countries-wrap"></div>
-      <div class="add-country">
-        <input type="text" id="new-country" placeholder="Country name e.g. French Polynesia" onkeydown="if(event.key==='Enter')addCountry()">
-        <input type="text" id="new-flag" placeholder="🇵🇫" maxlength="4" style="width:70px">
-        <button class="btn-small" onclick="addCountry()">Add</button>
+      <div class="country-search-wrap">
+        <input type="text" id="country-search" placeholder="Search for a country…" autocomplete="off" oninput="filterCountries()" onfocus="openDropdown()" onblur="setTimeout(closeDropdown,150)">
+        <div class="dropdown" id="country-dropdown"></div>
       </div>
+      <div class="countries-wrap" id="countries-wrap"></div>
     </div>
 
     <hr class="divider">
@@ -84,23 +99,138 @@ const WORKER = 'https://garmin-tracker.mm-scheunert.workers.dev';
 let password = '';
 let countries = [];
 
+// Full country list with flags
+const ALL_COUNTRIES = [
+  {name:'Afghanistan',flag:'🇦🇫'},{name:'Albania',flag:'🇦🇱'},{name:'Algeria',flag:'🇩🇿'},
+  {name:'Andorra',flag:'🇦🇩'},{name:'Angola',flag:'🇦🇴'},{name:'Antigua and Barbuda',flag:'🇦🇬'},
+  {name:'Argentina',flag:'🇦🇷'},{name:'Armenia',flag:'🇦🇲'},{name:'Australia',flag:'🇦🇺'},
+  {name:'Austria',flag:'🇦🇹'},{name:'Azerbaijan',flag:'🇦🇿'},{name:'Bahamas',flag:'🇧🇸'},
+  {name:'Bahrain',flag:'🇧🇭'},{name:'Bangladesh',flag:'🇧🇩'},{name:'Barbados',flag:'🇧🇧'},
+  {name:'Belarus',flag:'🇧🇾'},{name:'Belgium',flag:'🇧🇪'},{name:'Belize',flag:'🇧🇿'},
+  {name:'Benin',flag:'🇧🇯'},{name:'Bhutan',flag:'🇧🇹'},{name:'Bolivia',flag:'🇧🇴'},
+  {name:'Bosnia and Herzegovina',flag:'🇧🇦'},{name:'Botswana',flag:'🇧🇼'},{name:'Brazil',flag:'🇧🇷'},
+  {name:'Brunei',flag:'🇧🇳'},{name:'Bulgaria',flag:'🇧🇬'},{name:'Burkina Faso',flag:'🇧🇫'},
+  {name:'Burundi',flag:'🇧🇮'},{name:'Cambodia',flag:'🇰🇭'},{name:'Cameroon',flag:'🇨🇲'},
+  {name:'Canada',flag:'🇨🇦'},{name:'Cape Verde',flag:'🇨🇻'},{name:'Central African Republic',flag:'🇨🇫'},
+  {name:'Chad',flag:'🇹🇩'},{name:'Chile',flag:'🇨🇱'},{name:'China',flag:'🇨🇳'},
+  {name:'Colombia',flag:'🇨🇴'},{name:'Comoros',flag:'🇰🇲'},{name:'Congo',flag:'🇨🇬'},
+  {name:'Costa Rica',flag:'🇨🇷'},{name:'Croatia',flag:'🇭🇷'},{name:'Cuba',flag:'🇨🇺'},
+  {name:'Cyprus',flag:'🇨🇾'},{name:'Czech Republic',flag:'🇨🇿'},{name:'Denmark',flag:'🇩🇰'},
+  {name:'Djibouti',flag:'🇩🇯'},{name:'Dominica',flag:'🇩🇲'},{name:'Dominican Republic',flag:'🇩🇴'},
+  {name:'Ecuador',flag:'🇪🇨'},{name:'Egypt',flag:'🇪🇬'},{name:'El Salvador',flag:'🇸🇻'},
+  {name:'Equatorial Guinea',flag:'🇬🇶'},{name:'Eritrea',flag:'🇪🇷'},{name:'Estonia',flag:'🇪🇪'},
+  {name:'Eswatini',flag:'🇸🇿'},{name:'Ethiopia',flag:'🇪🇹'},{name:'Fiji',flag:'🇫🇯'},
+  {name:'Finland',flag:'🇫🇮'},{name:'France',flag:'🇫🇷'},{name:'French Polynesia',flag:'🇵🇫'},
+  {name:'Gabon',flag:'🇬🇦'},{name:'Gambia',flag:'🇬🇲'},{name:'Georgia',flag:'🇬🇪'},
+  {name:'Germany',flag:'🇩🇪'},{name:'Ghana',flag:'🇬🇭'},{name:'Greece',flag:'🇬🇷'},
+  {name:'Grenada',flag:'🇬🇩'},{name:'Guatemala',flag:'🇬🇹'},{name:'Guinea',flag:'🇬🇳'},
+  {name:'Guinea-Bissau',flag:'🇬🇼'},{name:'Guyana',flag:'🇬🇾'},{name:'Haiti',flag:'🇭🇹'},
+  {name:'Honduras',flag:'🇭🇳'},{name:'Hungary',flag:'🇭🇺'},{name:'Iceland',flag:'🇮🇸'},
+  {name:'India',flag:'🇮🇳'},{name:'Indonesia',flag:'🇮🇩'},{name:'Iran',flag:'🇮🇷'},
+  {name:'Iraq',flag:'🇮🇶'},{name:'Ireland',flag:'🇮🇪'},{name:'Israel',flag:'🇮🇱'},
+  {name:'Italy',flag:'🇮🇹'},{name:'Jamaica',flag:'🇯🇲'},{name:'Japan',flag:'🇯🇵'},
+  {name:'Jordan',flag:'🇯🇴'},{name:'Kazakhstan',flag:'🇰🇿'},{name:'Kenya',flag:'🇰🇪'},
+  {name:'Kiribati',flag:'🇰🇮'},{name:'Kuwait',flag:'🇰🇼'},{name:'Kyrgyzstan',flag:'🇰🇬'},
+  {name:'Laos',flag:'🇱🇦'},{name:'Latvia',flag:'🇱🇻'},{name:'Lebanon',flag:'🇱🇧'},
+  {name:'Lesotho',flag:'🇱🇸'},{name:'Liberia',flag:'🇱🇷'},{name:'Libya',flag:'🇱🇾'},
+  {name:'Liechtenstein',flag:'🇱🇮'},{name:'Lithuania',flag:'🇱🇹'},{name:'Luxembourg',flag:'🇱🇺'},
+  {name:'Madagascar',flag:'🇲🇬'},{name:'Malawi',flag:'🇲🇼'},{name:'Malaysia',flag:'🇲🇾'},
+  {name:'Maldives',flag:'🇲🇻'},{name:'Mali',flag:'🇲🇱'},{name:'Malta',flag:'🇲🇹'},
+  {name:'Marshall Islands',flag:'🇲🇭'},{name:'Mauritania',flag:'🇲🇷'},{name:'Mauritius',flag:'🇲🇺'},
+  {name:'Mexico',flag:'🇲🇽'},{name:'Micronesia',flag:'🇫🇲'},{name:'Moldova',flag:'🇲🇩'},
+  {name:'Monaco',flag:'🇲🇨'},{name:'Mongolia',flag:'🇲🇳'},{name:'Montenegro',flag:'🇲🇪'},
+  {name:'Morocco',flag:'🇲🇦'},{name:'Mozambique',flag:'🇲🇿'},{name:'Myanmar',flag:'🇲🇲'},
+  {name:'Namibia',flag:'🇳🇦'},{name:'Nauru',flag:'🇳🇷'},{name:'Nepal',flag:'🇳🇵'},
+  {name:'Netherlands',flag:'🇳🇱'},{name:'New Zealand',flag:'🇳🇿'},{name:'Nicaragua',flag:'🇳🇮'},
+  {name:'Niger',flag:'🇳🇪'},{name:'Nigeria',flag:'🇳🇬'},{name:'North Korea',flag:'🇰🇵'},
+  {name:'North Macedonia',flag:'🇲🇰'},{name:'Norway',flag:'🇳🇴'},{name:'Oman',flag:'🇴🇲'},
+  {name:'Pakistan',flag:'🇵🇰'},{name:'Palau',flag:'🇵🇼'},{name:'Panama',flag:'🇵🇦'},
+  {name:'Papua New Guinea',flag:'🇵🇬'},{name:'Paraguay',flag:'🇵🇾'},{name:'Peru',flag:'🇵🇪'},
+  {name:'Philippines',flag:'🇵🇭'},{name:'Poland',flag:'🇵🇱'},{name:'Portugal',flag:'🇵🇹'},
+  {name:'Qatar',flag:'🇶🇦'},{name:'Romania',flag:'🇷🇴'},{name:'Russia',flag:'🇷🇺'},
+  {name:'Rwanda',flag:'🇷🇼'},{name:'Saint Kitts and Nevis',flag:'🇰🇳'},{name:'Saint Lucia',flag:'🇱🇨'},
+  {name:'Saint Vincent and the Grenadines',flag:'🇻🇨'},{name:'Samoa',flag:'🇼🇸'},{name:'San Marino',flag:'🇸🇲'},
+  {name:'Saudi Arabia',flag:'🇸🇦'},{name:'Senegal',flag:'🇸🇳'},{name:'Serbia',flag:'🇷🇸'},
+  {name:'Seychelles',flag:'🇸🇨'},{name:'Sierra Leone',flag:'🇸🇱'},{name:'Singapore',flag:'🇸🇬'},
+  {name:'Slovakia',flag:'🇸🇰'},{name:'Slovenia',flag:'🇸🇮'},{name:'Solomon Islands',flag:'🇸🇧'},
+  {name:'Somalia',flag:'🇸🇴'},{name:'South Africa',flag:'🇿🇦'},{name:'South Korea',flag:'🇰🇷'},
+  {name:'South Sudan',flag:'🇸🇸'},{name:'Spain',flag:'🇪🇸'},{name:'Sri Lanka',flag:'🇱🇰'},
+  {name:'Sudan',flag:'🇸🇩'},{name:'Suriname',flag:'🇸🇷'},{name:'Sweden',flag:'🇸🇪'},
+  {name:'Switzerland',flag:'🇨🇭'},{name:'Syria',flag:'🇸🇾'},{name:'Taiwan',flag:'🇹🇼'},
+  {name:'Tajikistan',flag:'🇹🇯'},{name:'Tanzania',flag:'🇹🇿'},{name:'Thailand',flag:'🇹🇭'},
+  {name:'Timor-Leste',flag:'🇹🇱'},{name:'Togo',flag:'🇹🇬'},{name:'Tonga',flag:'🇹🇴'},
+  {name:'Trinidad and Tobago',flag:'🇹🇹'},{name:'Tunisia',flag:'🇹🇳'},{name:'Turkey',flag:'🇹🇷'},
+  {name:'Turkmenistan',flag:'🇹🇲'},{name:'Tuvalu',flag:'🇹🇻'},{name:'Uganda',flag:'🇺🇬'},
+  {name:'Ukraine',flag:'🇺🇦'},{name:'United Arab Emirates',flag:'🇦🇪'},{name:'United Kingdom',flag:'🇬🇧'},
+  {name:'United States',flag:'🇺🇸'},{name:'Uruguay',flag:'🇺🇾'},{name:'Uzbekistan',flag:'🇺🇿'},
+  {name:'Vanuatu',flag:'🇻🇺'},{name:'Vatican City',flag:'🇻🇦'},{name:'Venezuela',flag:'🇻🇪'},
+  {name:'Vietnam',flag:'🇻🇳'},{name:'Yemen',flag:'🇾🇪'},{name:'Zambia',flag:'🇿🇲'},{name:'Zimbabwe',flag:'🇿🇼'},
+  // Common sailing territories
+  {name:'Azores (Portugal)',flag:'🇵🇹'},{name:'Canary Islands (Spain)',flag:'🇪🇸'},
+  {name:'Caribbean Netherlands',flag:'🇳🇱'},{name:'Cayman Islands',flag:'🇰🇾'},
+  {name:'Cook Islands',flag:'🇨🇰'},{name:'Faroe Islands',flag:'🇫🇴'},
+  {name:'French Guiana',flag:'🇬🇫'},{name:'Gibraltar',flag:'🇬🇮'},
+  {name:'Guadeloupe',flag:'🇬🇵'},{name:'Guam',flag:'🇬🇺'},
+  {name:'Hawaii (USA)',flag:'🇺🇸'},{name:'Hong Kong',flag:'🇭🇰'},
+  {name:'Martinique',flag:'🇲🇶'},{name:'New Caledonia',flag:'🇳🇨'},
+  {name:'Puerto Rico',flag:'🇵🇷'},{name:'Réunion',flag:'🇷🇪'},
+  {name:'Sint Maarten',flag:'🇸🇽'},{name:'Tahiti (French Polynesia)',flag:'🇵🇫'},
+  {name:'Turks and Caicos',flag:'🇹🇨'},{name:'US Virgin Islands',flag:'🇻🇮'},
+  {name:'Wallis and Futuna',flag:'🇼🇫'},
+].sort((a,b) => a.name.localeCompare(b.name));
+
+let filtered = [];
+
+function filterCountries() {
+  const q = document.getElementById('country-search').value.toLowerCase().trim();
+  const dropdown = document.getElementById('country-dropdown');
+  if(!q) { dropdown.classList.remove('open'); return; }
+  filtered = ALL_COUNTRIES.filter(c => c.name.toLowerCase().includes(q) && !countries.find(x => x.name === c.name));
+  dropdown.innerHTML = filtered.length
+    ? filtered.slice(0,8).map((c,i) => `<div class="dropdown-item" onclick="selectCountry(${i})">${c.flag} ${c.name}</div>`).join('')
+    : '<div class="dropdown-item" style="color:var(--grey-mid)">No matches found</div>';
+  dropdown.classList.add('open');
+}
+
+function openDropdown() {
+  if(document.getElementById('country-search').value) filterCountries();
+}
+function closeDropdown() {
+  document.getElementById('country-dropdown').classList.remove('open');
+}
+
+function selectCountry(i) {
+  const c = filtered[i];
+  if(!c) return;
+  countries.push(c);
+  renderCountries();
+  document.getElementById('country-search').value = '';
+  document.getElementById('country-dropdown').classList.remove('open');
+}
+
+function renderCountries() {
+  const wrap = document.getElementById('countries-wrap');
+  wrap.innerHTML = countries.map((c,i) =>
+    `<div class="ctag">${c.flag} ${c.name} <button onclick="removeCountry(${i})">×</button></div>`
+  ).join('');
+}
+
+function removeCountry(i) { countries.splice(i,1); renderCountries(); }
+
 async function login() {
   const pw = document.getElementById('password').value;
   if(!pw) return;
-  // Try fetching stats to verify worker is up, then verify password on save
+  const statusEl = document.getElementById('login-status');
+  statusEl.textContent = 'Signing in…';
   try {
     const res = await fetch(WORKER + '/stats');
     const data = await res.json();
-    // Test password by doing a dummy save
     const test = await fetch(WORKER + '/stats', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...data, password: pw })
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({...data, password: pw})
     });
-    if(test.status === 401) {
-      document.getElementById('login-status').textContent = 'Incorrect password.';
-      return;
-    }
+    if(test.status === 401) { statusEl.textContent = 'Incorrect password.'; return; }
     password = pw;
     document.getElementById('login-section').style.display = 'none';
     document.getElementById('admin-section').style.display = 'block';
@@ -108,60 +238,23 @@ async function login() {
     countries = data.countries || [];
     renderCountries();
   } catch(e) {
-    document.getElementById('login-status').textContent = 'Could not connect to server.';
+    statusEl.textContent = 'Could not connect to server.';
   }
-}
-
-function renderCountries() {
-  const wrap = document.getElementById('countries-wrap');
-  wrap.innerHTML = '';
-  countries.forEach((c, i) => {
-    const tag = document.createElement('div');
-    tag.className = 'ctag';
-    tag.innerHTML = `${c.flag||''} ${c.name} <button onclick="removeCountry(${i})">×</button>`;
-    wrap.appendChild(tag);
-  });
-}
-
-function addCountry() {
-  const name = document.getElementById('new-country').value.trim();
-  if(!name) return;
-  const flag = document.getElementById('new-flag').value.trim();
-  countries.push({ name, flag });
-  document.getElementById('new-country').value = '';
-  document.getElementById('new-flag').value = '';
-  renderCountries();
-}
-
-function removeCountry(i) {
-  countries.splice(i, 1);
-  renderCountries();
 }
 
 async function saveStats() {
   const status = document.getElementById('save-status');
-  status.className = 'status';
-  status.textContent = 'Saving…';
+  status.className = 'status'; status.textContent = 'Saving…';
   try {
     const res = await fetch(WORKER + '/stats', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        miles: parseInt(document.getElementById('miles').value) || 0,
-        countries,
-        password
-      })
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ miles: parseInt(document.getElementById('miles').value)||0, countries, password })
     });
-    if(res.ok) {
-      status.className = 'status ok';
-      status.textContent = '✓ Saved! Changes are live on the site.';
-    } else {
-      status.className = 'status err';
-      status.textContent = 'Error saving. Try again.';
-    }
+    if(res.ok) { status.className='status ok'; status.textContent='✓ Saved! Changes are live on the site.'; }
+    else { status.className='status err'; status.textContent='Error saving. Try again.'; }
   } catch(e) {
-    status.className = 'status err';
-    status.textContent = 'Could not connect to server.';
+    status.className='status err'; status.textContent='Could not connect to server.';
   }
 }
 </script>
