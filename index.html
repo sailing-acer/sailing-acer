@@ -48,7 +48,16 @@
   .hero {
     padding:4rem 2rem 3.5rem; text-align:center;
     border-bottom:1px solid var(--grey-light);
+    background-image: url('Acer_Ferox_Fakarava.JPEG');
+    background-size: cover;
+    background-position: center;
+    position: relative;
   }
+  .hero::before {
+    content:''; position:absolute; inset:0;
+    background: rgba(250,249,246,0.82);
+  }
+  .hero > * { position:relative; z-index:1; }
   .hero-eyebrow {
     font-size:0.72rem; font-weight:500; letter-spacing:0.18em;
     text-transform:uppercase; color:var(--green-mid); margin-bottom:1rem;
@@ -160,8 +169,8 @@
   .chip-add:hover { border-color:var(--green-mid); color:var(--green); }
 
   .posts-list {
-    display:flex; flex-direction:column; gap:1px;
-    background:var(--grey-light); border:1px solid var(--grey-light);
+    display:flex; flex-direction:column; gap:0.6rem;
+    background:transparent; border:none;
     border-radius:6px; overflow:hidden;
   }
   .post-item {
@@ -169,6 +178,8 @@
     text-decoration:none; color:inherit;
     display:flex; align-items:stretch;
     transition:background 0.15s; overflow:hidden;
+    border:1px solid var(--grey-light);
+    border-radius:6px;
   }
   .post-item:hover { background:var(--grey-pale); }
   .post-thumb {
@@ -426,20 +437,6 @@
   </div>
 </div>
 
-
-  <div class="modal">
-    <h3>Add a country</h3>
-    <label>Country name</label>
-    <input id="country-name" type="text" placeholder="e.g. Portugal" onkeydown="if(event.key==='Enter')saveCountry()">
-    <label>Flag emoji (optional)</label>
-    <input id="country-flag" type="text" placeholder="e.g. 🇵🇹" maxlength="4">
-    <div class="modal-btns">
-      <button class="btn-ghost" onclick="closeCountry()">Cancel</button>
-      <button class="btn-green" onclick="saveCountry()">Add</button>
-    </div>
-  </div>
-</div>
-
 <script>
 // ── CONFIG ────────────────────────────────────────────────
 const WORKER    = 'https://garmin-tracker.mm-scheunert.workers.dev';
@@ -594,33 +591,17 @@ function saveMiles() {
 
 function renderCountries() {
   const wrap = document.getElementById('countries-chips');
+  if(!wrap) return;
   wrap.innerHTML = '';
   S.countries.forEach((c, i) => {
     const chip = document.createElement('div');
     chip.className = 'chip';
-    chip.innerHTML = `${c.flag||''} ${c.name} <button class="chip-remove" onclick="removeCountry(${i})">×</button>`;
+    chip.innerHTML = `${c.flag||''} ${c.name}`;
     wrap.appendChild(chip);
   });
-  const btn = document.createElement('button');
-  btn.className = 'chip-add'; btn.textContent = '+ Add';
-  btn.onclick = openCountryModal;
-  wrap.appendChild(btn);
   const n = S.countries.length;
   document.getElementById('sc-countries').textContent = n || '—';
   document.getElementById('h-countries').textContent = n || '—';
-}
-function openCountryModal() {
-  document.getElementById('country-name').value = '';
-  document.getElementById('country-flag').value = '';
-  document.getElementById('country-overlay').classList.add('open');
-  setTimeout(() => document.getElementById('country-name').focus(), 80);
-}
-function closeCountry() { document.getElementById('country-overlay').classList.remove('open'); }
-function saveCountry() {
-  const name = document.getElementById('country-name').value.trim();
-  if(!name) return;
-  S.countries.push({ name, flag: document.getElementById('country-flag').value.trim() });
-  save(); renderCountries(); closeCountry();
 }
 function removeCountry(i) { S.countries.splice(i,1); save(); renderCountries(); }
 
