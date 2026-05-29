@@ -697,8 +697,8 @@ async function loadGallery() {
         <div class="gallery-section-title">${loc.label}</div>
         <div class="gallery">`;
       resources.forEach(r => {
-        const imgUrl = `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/q_auto,f_auto,w_800/${r.public_id}.${r.format}`;
-        const fullUrl = `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/${r.public_id}.${r.format}`;
+        const imgUrl = `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/q_auto,f_jpg,w_800/${r.public_id}.${r.format}`;
+        const fullUrl = `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/q_auto,f_jpg/${r.public_id}.${r.format}`;
         allPhotoUrls.push(fullUrl);
         html += `<div class="gallery-item" onclick="openLightbox('${fullUrl}')">
           <img src="${imgUrl}" alt="${loc.label}" loading="lazy">
