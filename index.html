@@ -462,16 +462,6 @@
 </div>
 
 <script>
-  <div class="modal">
-    <h3>Update miles sailed</h3>
-    <label>Nautical miles</label>
-    <input id="miles-input" type="number" min="0" placeholder="e.g. 4200" onkeydown="if(event.key==='Enter')saveMiles()">
-    <div class="modal-btns">
-      <button class="btn-ghost" onclick="closeMiles()">Cancel</button>
-      <button class="btn-green" onclick="saveMiles()">Save</button>
-    </div>
-  </div>
-</div>
 
 <script>
 // ── CONFIG ────────────────────────────────────────────────
@@ -762,6 +752,37 @@ document.addEventListener('keydown', e => {
 });
 
 // ── INIT ──────────────────────────────────────────────────
+// Show cached values instantly so page never looks blank
+const cached = (() => { try { return JSON.parse(localStorage.getItem('acer_cache') || '{}'); } catch(e) { return {}; } })();
+if(cached.miles) { document.getElementById('h-miles').textContent = cached.miles; }
+if(cached.countries) { document.getElementById('h-countries').textContent = cached.countries; }
+if(cached.location) { document.getElementById('loc-text').textContent = cached.location; document.getElementById('bar-loc').textContent = cached.location; }
+
+// Patch loadWorkerStats to also cache results
+const _loadWorkerStats = loadWorkerStats;
+loadWorkerStats = async function() {
+  await _loadWorkerStats();
+  try {
+    localStorage.setItem('acer_cache', JSON.stringify({
+      miles: document.getElementById('h-miles').textContent,
+      countries: document.getElementById('h-countries').textContent,
+      location: document.getElementById('loc-text').textContent,
+    }));
+  } catch(e) {}
+};
+
+// Patch reverseGeocode to cache location
+const _reverseGeocode = reverseGeocode;
+reverseGeocode = async function(lat, lon, ts) {
+  await _reverseGeocode(lat, lon, ts);
+  try {
+    const loc = document.getElementById('loc-text').textContent;
+    const c = JSON.parse(localStorage.getItem('acer_cache') || '{}');
+    c.location = loc;
+    localStorage.setItem('acer_cache', JSON.stringify(c));
+  } catch(e) {}
+};
+
 renderCountries();
 renderCounts();
 loadWorkerStats();
