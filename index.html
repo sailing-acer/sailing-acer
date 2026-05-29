@@ -137,8 +137,9 @@
   #map { width:100%; height:460px; }
   .map-note { font-size:0.75rem; color:var(--grey-mid); padding:0.5rem 0.25rem; }
 
-  #map-iframe {
-    width:100%; height:460px; border:none; display:block;
+  #track-map {
+    width:100%; height:460px; display:block;
+    background:#d8e8ed; cursor:grab;
   }
 
   .stats-row {
@@ -408,7 +409,7 @@
         <span class="map-bar-time" id="bar-time"></span>
         <a href="https://share.garmin.com/svacer" target="_blank">Open on Garmin ↗</a>
       </div>
-      <iframe id="map-iframe" src="" title="SV Acer position map"></iframe>
+      <canvas id="track-map" width="900" height="460"></canvas>
     </div>
     <p class="map-note" id="map-note">Loading last known position…</p>
 
@@ -472,60 +473,154 @@ let S = { countries: [], postCount: 0, miles: 0 };
 try { const r = localStorage.getItem(SK); if(r) S = JSON.parse(r); } catch(e){}
 function save(){ try{ localStorage.setItem(SK, JSON.stringify(S)); } catch(e){} }
 
-// ── MAP INIT ──────────────────────────────────────────────
-function setMapPosition(lat, lon) {
-  // OpenStreetMap embed with marker — works everywhere, no JS library needed
-  const zoom = 8;
-  const url = `https://www.openstreetmap.org/export/embed.html?bbox=${lon-0.5},${lat-0.35},${lon+0.5},${lat+0.35}&layer=mapnik&marker=${lat},${lon}`;
-  document.getElementById('map-iframe').src = url;
+// ── MAP ───────────────────────────────────────────────────
+const TRACK_KML_URL = 'https://sailing-acer.github.io/sailing-acer/track.kml';
+let trackPoints = [];
+let livePosition = null;
+
+function parseKMLPoints(kmlText) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(kmlText, 'text/xml');
+  const points = [];
+  // LineString coordinates
+  doc.querySelectorAll('coordinates').forEach(el => {
+    el.textContent.trim().split(/\s+/).forEach(seg => {
+      const p = seg.split(',');
+      if(p.length >= 2) {
+        const lon = parseFloat(p[0]), lat = parseFloat(p[1]);
+        if(!isNaN(lat) && !isNaN(lon) && Math.abs(lat)<=90 && Math.abs(lon)<=180)
+          points.push({lat, lon});
+      }
+    });
+  });
+  // Placemark points
+  doc.querySelectorAll('Placemark').forEach(pm => {
+    const ptEl = pm.querySelector('Point coordinates');
+    if(!ptEl) return;
+    const p = ptEl.textContent.trim().split(',');
+    if(p.length < 2) return;
+    const lon = parseFloat(p[0]), lat = parseFloat(p[1]);
+    if(!isNaN(lat) && !isNaN(lon)) {
+      const whenEl = pm.querySelector('when') || pm.querySelector('TimeStamp when');
+      const ts = whenEl ? new Date(whenEl.textContent.trim()) : null;
+      points.push({lat, lon, ts});
+    }
+  });
+  // Sort by timestamp if available
+  if(points.some(p => p.ts)) points.sort((a,b) => { if(!a.ts) return 1; if(!b.ts) return -1; return a.ts-b.ts; });
+  return points;
 }
 
-// ── LOAD GARMIN POSITION ──────────────────────────────────
+function drawMap() {
+  const canvas = document.getElementById('track-map');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  // Combine track + live for bounding box
+  const allPts = [...trackPoints, ...(livePosition ? [livePosition] : [])];
+  if(allPts.length === 0) { drawFallback('No position data available'); return; }
+
+  let minLat=Infinity,maxLat=-Infinity,minLon=Infinity,maxLon=-Infinity;
+  allPts.forEach(p => {
+    minLat=Math.min(minLat,p.lat); maxLat=Math.max(maxLat,p.lat);
+    minLon=Math.min(minLon,p.lon); maxLon=Math.max(maxLon,p.lon);
+  });
+  const latPad=(maxLat-minLat)*0.15||1.5, lonPad=(maxLon-minLon)*0.15||2;
+  minLat-=latPad; maxLat+=latPad; minLon-=lonPad; maxLon+=lonPad;
+  const scale=Math.min(W/(maxLon-minLon), H/(maxLat-minLat))*0.9;
+  const offX=(W-(maxLon-minLon)*scale)/2, offY=(H-(maxLat-minLat)*scale)/2;
+  const toX=lon=>offX+(lon-minLon)*scale;
+  const toY=lat=>H-offY-(lat-minLat)*scale;
+
+  // Ocean background
+  ctx.fillStyle='#d8e8ed'; ctx.fillRect(0,0,W,H);
+  // Subtle grid
+  ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.lineWidth=0.5;
+  for(let i=0;i<=10;i++){
+    ctx.beginPath();ctx.moveTo(W*i/10,0);ctx.lineTo(W*i/10,H);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,H*i/10);ctx.lineTo(W,H*i/10);ctx.stroke();
+  }
+
+  // Draw track if we have it
+  if(trackPoints.length > 1) {
+    // Shadow
+    ctx.beginPath(); ctx.strokeStyle='rgba(0,0,0,0.07)'; ctx.lineWidth=4;
+    ctx.lineJoin='round'; ctx.lineCap='round';
+    ctx.moveTo(toX(trackPoints[0].lon)+1, toY(trackPoints[0].lat)+1);
+    trackPoints.forEach(p=>ctx.lineTo(toX(p.lon)+1,toY(p.lat)+1));
+    ctx.stroke();
+    // Track line
+    ctx.beginPath(); ctx.strokeStyle='#1a3a5c'; ctx.lineWidth=2.5;
+    ctx.setLineDash([5,4]); ctx.lineJoin='round'; ctx.lineCap='round';
+    ctx.moveTo(toX(trackPoints[0].lon), toY(trackPoints[0].lat));
+    trackPoints.forEach(p=>ctx.lineTo(toX(p.lon),toY(p.lat)));
+    ctx.stroke(); ctx.setLineDash([]);
+    // Start dot
+    ctx.beginPath(); ctx.arc(toX(trackPoints[0].lon),toY(trackPoints[0].lat),4,0,Math.PI*2);
+    ctx.fillStyle='#7aaa7b'; ctx.fill();
+  }
+
+  // Draw live position dot
+  const pos = livePosition || (trackPoints.length>0 ? trackPoints[trackPoints.length-1] : null);
+  if(pos) {
+    const x=toX(pos.lon), y=toY(pos.lat);
+    ctx.beginPath(); ctx.arc(x,y,14,0,Math.PI*2);
+    ctx.strokeStyle='rgba(26,58,92,0.2)'; ctx.lineWidth=2; ctx.stroke();
+    ctx.beginPath(); ctx.arc(x,y,9,0,Math.PI*2);
+    ctx.fillStyle='white'; ctx.fill();
+    ctx.beginPath(); ctx.arc(x,y,5.5,0,Math.PI*2);
+    ctx.fillStyle='#1a3a5c'; ctx.fill();
+  }
+}
+
+function drawFallback(msg) {
+  const canvas=document.getElementById('track-map');
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#d8e8ed'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle='rgba(26,58,92,0.4)'; ctx.font='300 13px Jost,sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText(msg||'No track data', canvas.width/2, canvas.height/2);
+  ctx.fillText('Visit share.garmin.com/svacer for live map', canvas.width/2, canvas.height/2+20);
+  ctx.textAlign='left';
+}
+
+async function loadTrackKML() {
+  try {
+    const res = await fetch(TRACK_KML_URL + '?t=' + Date.now());
+    if(!res.ok) throw new Error('no track file');
+    const kml = await res.text();
+    trackPoints = parseKMLPoints(kml);
+  } catch(e) {
+    trackPoints = [];
+  }
+}
+
 async function loadGarminPosition() {
   const note = document.getElementById('map-note');
+  const fallbackLat=-15.958983, fallbackLon=-145.86829, fallbackTs=new Date('2026-05-28T02:29:15Z');
   try {
-    const proxyUrl = WORKER + '?url=' + encodeURIComponent(GARMIN_KML);
-    const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(12000) });
-    if(!res.ok) throw new Error('proxy ' + res.status);
+    const res = await fetch(WORKER + '/garmin', {signal: AbortSignal.timeout(12000)});
+    if(!res.ok) throw new Error('garmin ' + res.status);
     const kml = await res.text();
     if(!kml || kml.length < 50) throw new Error('empty');
-
-    // Parse lat/lon and timestamp from KML
     const parser = new DOMParser();
     const doc = parser.parseFromString(kml, 'text/xml');
-
-    // Get coordinates from Point element
     const coordEl = doc.querySelector('Point coordinates');
-    if(!coordEl) throw new Error('no coordinates');
+    if(!coordEl) throw new Error('no coords');
     const parts = coordEl.textContent.trim().split(',');
-    const lon = parseFloat(parts[0]);
-    const lat = parseFloat(parts[1]);
-    if(isNaN(lat) || isNaN(lon)) throw new Error('bad coords');
-
-    // Get timestamp
+    const lon=parseFloat(parts[0]), lat=parseFloat(parts[1]);
+    if(isNaN(lat)||isNaN(lon)) throw new Error('bad coords');
     const whenEl = doc.querySelector('TimeStamp when');
     const ts = whenEl ? new Date(whenEl.textContent.trim()) : null;
-
-    // Place marker on map
-    setMapPosition(lat, lon);
-
-    // Reverse geocode
+    livePosition = {lat, lon, ts};
     await reverseGeocode(lat, lon, ts);
-
-    const timeStr = ts ? ' · ' + timeAgo(ts) : '';
-    note.textContent = 'Position loaded' + timeStr;
-
+    note.textContent = 'Position loaded' + (ts ? ' · '+timeAgo(ts) : '');
   } catch(e) {
-    console.warn('Garmin load failed:', e.message);
-    // Show fallback position (last known from the KML file we have)
-    const fallbackLat = -15.958983;
-    const fallbackLon = -145.86829;
-    const fallbackTs  = new Date('2026-05-28T02:29:15Z');
-    setMapPosition(fallbackLat, fallbackLon);
+    livePosition = {lat: fallbackLat, lon: fallbackLon, ts: fallbackTs};
     await reverseGeocode(fallbackLat, fallbackLon, fallbackTs);
-    note.innerHTML = 'Showing last known position · <a href="https://share.garmin.com/svacer" target="_blank" style="color:var(--green-mid)">View live on Garmin ↗</a>';
+    note.innerHTML = 'Showing last known position · <a href="https://share.garmin.com/svacer" target="_blank" style="color:var(--navy-mid)">View on Garmin ↗</a>';
   }
-  renderCounts();
+  drawMap();
 }
 
 // ── REVERSE GEOCODE ───────────────────────────────────────
@@ -634,7 +729,7 @@ async function loadPosts() {
   postsLoaded = true;
   const container = document.getElementById('posts-container');
   try {
-    const proxyUrl = WORKER + '?url=' + encodeURIComponent('https://maggiemcnabb.substack.com/feed');
+    const proxyUrl = WORKER + '/substack';
     const res = await fetch(proxyUrl);
     if(!res.ok) throw new Error('fetch failed');
     const text = await res.text();
@@ -784,7 +879,8 @@ reverseGeocode = async function(lat, lon, ts) {
 renderCountries();
 renderCounts();
 loadWorkerStats();
-loadGarminPosition();
+// Load track first, then live position on top
+loadTrackKML().then(() => loadGarminPosition());
 loadPosts();
 </script>
 </body>
